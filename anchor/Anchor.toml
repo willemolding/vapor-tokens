@@ -6,7 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-vapor_tokens = "AHRry3MwdUsLbNgfzx5bbpmzz52oRL7UgLgvuiWpV97w"
+condenser = "FrcRj9b13DKzq2EoFqFXjmqqgamd1nsPjkhRCrT9Za8C"
+transfer_hook = "Cp58wswY9RJbycQSP5meuwAKGBWk44Lsza7npcXmDwRT"
 
 [registry]
 url = "https://api.apr.dev"
