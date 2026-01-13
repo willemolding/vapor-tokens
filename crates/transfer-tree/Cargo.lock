@@ -972,6 +972,7 @@ dependencies = [
  "light-compressed-account",
  "light-hasher",
  "light-sparse-merkle-tree",
+ "num-bigint",
 ]
 
 [[package]]

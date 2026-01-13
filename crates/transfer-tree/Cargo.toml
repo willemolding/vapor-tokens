@@ -7,3 +7,7 @@ edition = "2024"
 light-compressed-account = {version = "0.7.0", features = ["keccak"]}
 light-sparse-merkle-tree = "0.3.0"
 light-hasher = "5.0.0"
+
+[dev-dependencies]
+num-bigint = "0.4.6"
+
