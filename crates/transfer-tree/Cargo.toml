@@ -1,0 +1,9 @@
+[package]
+name = "transfer-tree"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+light-compressed-account = "0.7.0"
+light-sparse-merkle-tree = "0.3.0"
+light-hasher = "5.0.0"
