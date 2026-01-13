@@ -9,13 +9,13 @@ import {
   createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
   createInitializeTransferHookInstruction,
+  createMintToInstruction,
   createTransferCheckedWithTransferHookInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   getMintLen,
 } from "@solana/spl-token";
 import { TransferHook } from "../target/types/transfer_hook";
-import { Condenser } from "../target/types/condenser";
 
 describe("vapor-tokens", () => {
   const provider = anchor.AnchorProvider.env();
@@ -26,20 +26,16 @@ describe("vapor-tokens", () => {
 
   const transferHookProgram = anchor.workspace
     .transferHook as Program<TransferHook>;
-  const condenserProgram = anchor.workspace.condenser as Program<Condenser>;
-
+    
   it("mints and transfers with transfer hook", async () => {
     const mint = Keypair.generate();
+    const mintAuthority = Keypair.generate();
     const decimals = 9;
     const mintLen = getMintLen([ExtensionType.TransferHook]);
     const lamports = await connection.getMinimumBalanceForRentExemption(
       mintLen
     );
 
-    const [mintAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("mint_authority"), mint.publicKey.toBuffer()],
-      condenserProgram.programId
-    );
     const [extraAccountMetaList] = PublicKey.findProgramAddressSync(
       [Buffer.from("extra-account-metas"), mint.publicKey.toBuffer()],
       transferHookProgram.programId
@@ -66,7 +62,7 @@ describe("vapor-tokens", () => {
       createInitializeMintInstruction(
         mint.publicKey,
         decimals,
-        mintAuthority,
+        mintAuthority.publicKey,
         null,
         TOKEN_2022_PROGRAM_ID
       )
@@ -129,59 +125,62 @@ describe("vapor-tokens", () => {
 
     await provider.sendAndConfirm(createAtasTx, []);
 
-    // const initialAmount = 5;
-    // for (let i = 0; i < initialAmount; i += 1) {
-    //   await condenserProgram.methods
-    //     .condense(Buffer.from([]), Buffer.from([]))
-    //     .accountsStrict({
-    //       mint: mint.publicKey,
-    //       to: payerAta,
-    //       mintAuthority,
-    //       tokenProgram: TOKEN_2022_PROGRAM_ID,
-    //       treeAccount,
-    //     })
-    //     .rpc();
-    // }
+    const initialAmount = 5n;
+    const mintToIx = createMintToInstruction(
+      mint.publicKey,
+      payerAta,
+      mintAuthority.publicKey,
+      initialAmount,
+      [],
+      TOKEN_2022_PROGRAM_ID
+    );
+    await provider.sendAndConfirm(new Transaction().add(mintToIx), [
+      mintAuthority,
+    ]);
 
-    // const transferAmount = 2n;
-    // const beforeTree =
-    //   await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
-    // const transferIx = await createTransferCheckedWithTransferHookInstruction(
-    //   connection,
-    //   payerAta,
-    //   mint.publicKey,
-    //   recipientAta,
-    //   payer,
-    //   transferAmount,
-    //   decimals,
-    //   [],
-    //   undefined,
-    //   TOKEN_2022_PROGRAM_ID
-    // );
+    const transferAmount = 2n;
+    const beforeTree =
+      await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
+    const transferIx = await createTransferCheckedWithTransferHookInstruction(
+      connection,
+      payerAta,
+      mint.publicKey,
+      recipientAta,
+      payer,
+      transferAmount,
+      decimals,
+      [],
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
 
-    // const transferTx = new Transaction().add(transferIx);
-    // await provider.sendAndConfirm(transferTx, []);
-    // const afterTree =
-    //   await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
+    const transferTx = new Transaction().add(transferIx);
+    await provider.sendAndConfirm(transferTx, []);
+    const afterTree =
+      await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
 
-    // const payerAccount = await getAccount(
-    //   connection,
-    //   payerAta,
-    //   undefined,
-    //   TOKEN_2022_PROGRAM_ID
-    // );
-    // const recipientAccount = await getAccount(
-    //   connection,
-    //   recipientAta,
-    //   undefined,
-    //   TOKEN_2022_PROGRAM_ID
-    // );
+    const payerAccount = await getAccount(
+      connection,
+      payerAta,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    const recipientAccount = await getAccount(
+      connection,
+      recipientAta,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
 
-    // assert.equal(
-    //   afterTree.nextIndex.toNumber(),
-    //   beforeTree.nextIndex.toNumber() + 1
-    // );
-    // assert.equal(payerAccount.amount, BigInt(initialAmount) - transferAmount);
-    // assert.equal(recipientAccount.amount, transferAmount);
+    console.log("Before tree root:", beforeTree.root);
+    console.log("After tree root:", afterTree.root);
+
+    assert.notEqual(beforeTree.root, afterTree.root);
+    assert.equal(
+      afterTree.nextIndex.toNumber(),
+      beforeTree.nextIndex.toNumber() + 1
+    );
+    assert.equal(payerAccount.amount, initialAmount - transferAmount);
+    assert.equal(recipientAccount.amount, transferAmount);
   });
 });

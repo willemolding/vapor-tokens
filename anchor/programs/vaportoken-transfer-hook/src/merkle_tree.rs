@@ -27,10 +27,11 @@ impl MerkleTree {
     }
 
     pub fn append<H: Hasher>(
-        data: &[&[u8]],
+        leaf: [u8; 32],
         tree_account: &mut MerkleTreeAccount,
     ) -> Result<Vec<[u8; 32]>> {
-        let leaf = H::hashv(data).unwrap();
+        msg!("Current tree root: {:?}", tree_account.root);
+        msg!("Appending leaf: {:?}", leaf);
 
         let height = tree_account.height as usize;
         let root_history_size = tree_account.root_history_size as usize;
@@ -79,6 +80,8 @@ impl MerkleTree {
             % root_history_size;
         tree_account.root_index = new_root_index as u64;
         tree_account.root_history[new_root_index] = current_level_hash;
+
+        msg!("New tree root: {:?}", tree_account.root);
 
         Ok(proof)
     }

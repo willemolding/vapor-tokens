@@ -15,7 +15,7 @@ use anchor_spl::{
     },
     token_interface::{Mint, TokenAccount},
 };
-use light_hasher::Poseidon;
+use light_hasher::{hash_to_field_size::hashv_to_bn254_field_size_be, Poseidon};
 pub use merkle_tree::{MerkleTree, MerkleTreeAccount};
 use spl_discriminator::SplDiscriminate;
 use spl_tlv_account_resolution::{
@@ -76,15 +76,14 @@ pub mod transfer_hook {
         // Fail this instruction if it is not called from within a transfer hook
         check_is_transferring(&ctx)?;
 
+        let leaf = hashv_to_bn254_field_size_be(&[
+            ctx.accounts.destination_token.key().as_ref(),
+            &amount.to_be_bytes(),
+        ]);
+
         // Insert the leaf into the merkle tree for the transfer
         let tree_account = &mut ctx.accounts.tree_account.load_mut()?;
-        MerkleTree::append::<Poseidon>(
-            &[
-                ctx.accounts.destination_token.key().as_ref(),
-                &amount.to_be_bytes(),
-            ],
-            tree_account,
-        )?;
+        MerkleTree::append::<Poseidon>(leaf, tree_account)?;
 
         // Emit a transfer log which will be used by the wallet to
         // reconstruct the merkle tree corresponding to the accumulator
