@@ -14,3 +14,25 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
         self.append(leaf)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_append_transfer() {
+        let mut tree = TransferTree::<26>::new_empty();
+        let old_root = tree.root();
+        println!("Old root: {:?}", old_root);
+        tree.append_transfer(
+            [
+                156, 111, 42, 136, 201, 208, 254, 61, 196, 52, 59, 38, 121, 179, 123, 10, 198, 128,
+                127, 2, 60, 4, 128, 66, 91, 226, 221, 37, 137, 211, 217, 175,
+            ],
+            2,
+        );
+        let new_root = tree.root();
+        println!("New root: {:?}", new_root);
+        assert_ne!(old_root, new_root);
+    }
+}

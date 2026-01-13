@@ -154,6 +154,9 @@ describe("vapor-tokens", () => {
       TOKEN_2022_PROGRAM_ID
     );
 
+    console.log("Before tree root:", beforeTree.root);
+    console.log("Submitting transfer to: ", recipientAta.toBytes(), " amount: ", transferAmount.toString());
+
     const transferTx = new Transaction().add(transferIx);
     await provider.sendAndConfirm(transferTx, []);
     const afterTree =
@@ -172,7 +175,6 @@ describe("vapor-tokens", () => {
       TOKEN_2022_PROGRAM_ID
     );
 
-    console.log("Before tree root:", beforeTree.root);
     console.log("After tree root:", afterTree.root);
 
     assert.notEqual(beforeTree.root, afterTree.root);
