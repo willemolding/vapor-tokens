@@ -12,8 +12,8 @@ fn main(
     vapour_addr: pub [u8; 32],
     secret: Field,
 ) {
-    // x is derived from poseidon( secret || recipient)
-    let x = ed25519_fq_from_noir_field(hash_2([secret, hash_address_to_field(recipient)]));
+    // x is derived from poseidon( recipient || secret )
+    let x = ed25519_fq_from_noir_field(hash_2([hash_address_to_field(recipient), secret]));
 
     // y is derived from vapour_addr which is in edwards compressed form
     let y = decompress_y(vapour_addr);
