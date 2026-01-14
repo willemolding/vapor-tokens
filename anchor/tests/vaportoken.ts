@@ -391,6 +391,7 @@ describe("vapor-tokens", () => {
       "condenser.pw"
     );
     const witnessBytes = fs.readFileSync(witnessPath);
+    const amount = witnessBytes.readBigUInt64BE(12 + 2 * 32 + 24);
 
     await condenserProgram.methods
       .condense(recipientOwner, proofBytes, witnessBytes)
@@ -408,6 +409,27 @@ describe("vapor-tokens", () => {
         systemProgram: SystemProgram.programId,
       })
       .rpc();
+
+    const recipientAccount = await getAccount(
+      connection,
+      recipientAta,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    assert.equal(
+      recipientAccount.amount,
+      transferAmount,
+      "recipient balance should reflect the condensed amount"
+    );
+
+    const withdrawnState = await condenserProgram.account.withdrawnTracker.fetch(
+      withdrawnAccount
+    );
+    assert.equal(
+      withdrawnState.totalWithdrawn.toString(),
+      amount.toString(),
+      "withdrawn account should track the cumulative condensed amount"
+    );
 
   });
 });
