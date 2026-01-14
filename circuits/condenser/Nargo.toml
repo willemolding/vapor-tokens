@@ -6,4 +6,3 @@ authors = ["Willem Olding <willemolding@gmail.com>"]
 [dependencies]
 bignum = { tag = "v0.8.3", git = "https://github.com/noir-lang/noir-bignum" }
 poseidon = { tag = "v0.2.0", git = "https://github.com/noir-lang/poseidon" }
-nodash = { git = "https://github.com/olehmisar/nodash/", tag = "v0.43.1" }

@@ -5,6 +5,7 @@ use ark_ff::{Field, One, PrimeField, UniformRand, Zero};
 use ark_serialize::CanonicalSerialize;
 use light_poseidon::{Poseidon, PoseidonHasher};
 use rand::Rng;
+use utils::pack_bytes;
 
 /// Given a recipient address (32 bytes) generate an unspendable vapourize address
 /// and return it plus the secret value required to prove ownership
@@ -12,11 +13,13 @@ pub fn generate_vaporize_address<R: rand::RngCore>(
     rng: &mut R,
     recipient: [u8; 32],
 ) -> ([u8; 32], NoirField) {
+    let recipient = pack_bytes(&recipient);
+
     // Try random values until we find a valid point on the ed25519 curve
     // This should take on average 2 tries
     let (p, r) = loop {
         let r = NoirField::rand(rng);
-        let x = hash_2(hash_address_to_field(recipient), r);
+        let x = hash_3(recipient[0], recipient[1], r);
         if let Some(p) = ed25519_point_from_x(rng, ed25519_fq_from_noir_field(&x)) {
             break (p, r);
         }
@@ -27,28 +30,13 @@ pub fn generate_vaporize_address<R: rand::RngCore>(
     (addr, r)
 }
 
-fn hash_2(a: NoirField, b: NoirField) -> NoirField {
-    let mut poseidon = Poseidon::<NoirField>::new_circom(2).unwrap();
-    poseidon.hash(&[a, b]).unwrap()
+fn hash_3(a: NoirField, b: NoirField, c: NoirField) -> NoirField {
+    let mut poseidon = Poseidon::<NoirField>::new_circom(3).unwrap();
+    poseidon.hash(&[a, b, c]).unwrap()
 }
 
 fn ed25519_fq_from_noir_field(x: &NoirField) -> Fq {
     Fq::from_bigint(x.into_bigint()).unwrap()
-}
-
-/// Split a [u8;32] into two halves, interpret each half as a field element
-/// and hash them together using Poseidon
-fn hash_address_to_field(x: [u8; 32]) -> NoirField {
-    let mut hi = [0u8; 16];
-    let mut lo = [0u8; 16];
-    hi.copy_from_slice(&x[0..16]);
-    lo.copy_from_slice(&x[16..32]);
-
-    let a = NoirField::from_le_bytes_mod_order(&hi);
-    let b = NoirField::from_le_bytes_mod_order(&lo);
-
-    let mut poseidon = Poseidon::<NoirField>::new_circom(2).unwrap();
-    poseidon.hash(&[a, b]).unwrap()
 }
 
 /// Given an x coordinate, attempt to find the corresponding y coordinate on the ed25519 curve

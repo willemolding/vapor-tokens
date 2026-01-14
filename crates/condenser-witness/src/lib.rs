@@ -1,10 +1,11 @@
 use ark_bn254::Fr as NoirField;
 use ark_ff::PrimeField;
+use utils::pack_bytes;
 
 use bon::bon;
 
 pub struct CondenserWitness<const HEIGHT: usize> {
-    pub recipient: [u8; 32],
+    pub recipient: [NoirField; 2],
     pub amount: NoirField,
     pub merkle_root: NoirField,
     pub vapour_addr: [u8; 32],
@@ -26,7 +27,9 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
         secret: NoirField,
     ) -> Self {
         Self {
-            recipient,
+            recipient: pack_bytes(&recipient)
+                .try_into()
+                .expect("recipient must be 2 field elements"),
             amount: NoirField::from(amount),
             merkle_root: NoirField::from_be_bytes_mod_order(&merkle_root),
             vapour_addr: vapour_addr,
@@ -89,7 +92,7 @@ mod tests {
     #[test]
     fn test_to_toml() {
         let witness = CondenserWitness {
-            recipient: [1u8; 32],
+            recipient: [NoirField::from(1u64); 2],
             amount: NoirField::from(42u64),
             merkle_root: NoirField::from(2u64),
             vapour_addr: [3u8; 32],
