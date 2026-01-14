@@ -57,7 +57,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
         ));
 
         toml_str.push_str(&format!(
-            "vapour_addr = {:?}\n",
+            "vapor_addr = {:?}\n",
             self.vapor_addr
                 .iter()
                 .map(|b| b.to_string())

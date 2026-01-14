@@ -283,7 +283,7 @@ describe("vapor-tokens", () => {
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     const recipientOwner = new PublicKey(
-      "2ZhCrfYxvRoqai1AnbEhc31xUvVEMQGeC4ksRBn2cCtJ"
+      "EvFUfisEScFuZSqDXagC17m3bpP32B74dseMHtzQ5TNb"
     );
     const recipientAta = getAssociatedTokenAddressSync(
       mint.publicKey,
@@ -292,9 +292,22 @@ describe("vapor-tokens", () => {
       TOKEN_2022_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    console.log("Hard-coded recipient owner:", recipientOwner.toBase58());
-    console.log("Derived recipient ATA:", recipientAta.toBase58());
-    const createAtaTx = new Transaction().add(
+    const vaporOwner = new PublicKey(
+      "DKp1YW5zcJBR4ujZnbW6gJWFXSWerS6CMJogV4tcfgNh"
+    );
+    const vaporAta = getAssociatedTokenAddressSync(
+      mint.publicKey,
+      vaporOwner,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    const [withdrawnAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("withdrawn"), mint.publicKey.toBuffer(), recipientOwner.toBuffer()],
+      condenserProgram.programId
+    );
+
+    const createRecipientAtaTx = new Transaction().add(
       createAssociatedTokenAccountInstruction(
         payer,
         payerAta,
@@ -310,9 +323,17 @@ describe("vapor-tokens", () => {
         mint.publicKey,
         TOKEN_2022_PROGRAM_ID,
         ASSOCIATED_TOKEN_PROGRAM_ID
+      ),
+      createAssociatedTokenAccountInstruction(
+        payer,
+        vaporAta,
+        vaporOwner,
+        mint.publicKey,
+        TOKEN_2022_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
       )
     );
-    await provider.sendAndConfirm(createAtaTx, []);
+    await provider.sendAndConfirm(createRecipientAtaTx, []);
 
     const initialAmount = 10000;
     const mintToIx = createMintToInstruction(
@@ -340,7 +361,7 @@ describe("vapor-tokens", () => {
       connection,
       payerAta,
       mint.publicKey,
-      recipientAta,
+      vaporAta,
       payer,
       transferAmount,
       decimals,
@@ -372,7 +393,7 @@ describe("vapor-tokens", () => {
     const witnessBytes = fs.readFileSync(witnessPath);
 
     await condenserProgram.methods
-      .condense(proofBytes, witnessBytes)
+      .condense(recipientOwner, proofBytes, witnessBytes)
       .preInstructions([
         ComputeBudgetProgram.setComputeUnitLimit({ units: 1_000_000 }),
       ])
@@ -382,6 +403,9 @@ describe("vapor-tokens", () => {
         mintAuthority,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         treeAccount,
+        withdrawn: withdrawnAccount,
+        payer,
+        systemProgram: SystemProgram.programId,
       })
       .rpc();
 

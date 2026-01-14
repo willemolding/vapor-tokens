@@ -16,6 +16,7 @@ pub mod condenser {
 
     pub fn condense(
         ctx: Context<Condense>,
+        recipient: Pubkey,
         proof_bytes: Vec<u8>,
         pub_witness_bytes: Vec<u8>,
     ) -> Result<()> {
@@ -24,13 +25,20 @@ pub mod condenser {
         let pub_witness = GnarkWitness::<NR_INPUTS>::from_bytes(&pub_witness_bytes).unwrap();
 
         // Deserialize public inputs
-        let recipient = unpack_bytes_from_le_fields(&pub_witness.entries[0..2], 32);
+        let recipient_bytes = unpack_bytes_from_le_fields(&pub_witness.entries[0..2], 32);
+        let recipient_from_witness = Pubkey::new_from_array(
+            recipient_bytes
+                .as_slice()
+                .try_into()
+                .map_err(|_| ErrorCode::InvalidRecipient)?,
+        );
         let amount = u64::from_be_bytes(pub_witness.entries[2][24..].try_into().unwrap());
         let merkle_root = pub_witness.entries[3];
 
-        msg!("Recipient: {:?}", recipient);
-        msg!("Amount: {:?}", amount);
-        msg!("Merkle root: {:?}", merkle_root);
+        // Check recipient matches
+        if recipient != recipient_from_witness {
+            return Err(ErrorCode::RecipientMismatch.into());
+        }
 
         // Verify proof
         let mut verifier: GnarkVerifier<NR_INPUTS> = GnarkVerifier::new(&vk::VK);
@@ -40,8 +48,6 @@ pub mod condenser {
 
         // check the root is a known root in our tree
         let tree_account = ctx.accounts.tree_account.load()?;
-
-        msg!("Current tree root: {:?}", tree_account.root);
 
         if !MerkleTree::is_known_root(&tree_account, merkle_root) {
             return Err(ErrorCode::MerkleRootNotInHistory.into());
@@ -62,6 +68,13 @@ pub mod condenser {
             signer_seeds,
         );
 
+        // Record this withdrawal to prevent double-withdrawals
+        let withdrawn = &mut ctx.accounts.withdrawn;
+        withdrawn.total_withdrawn = withdrawn
+            .total_withdrawn
+            .checked_add(amount)
+            .ok_or(ErrorCode::ArithmeticOverflow)?;
+
         mint_to(cpi_ctx, amount)?;
 
         Ok(())
@@ -69,6 +82,7 @@ pub mod condenser {
 }
 
 #[derive(Accounts)]
+#[instruction(recipient: Pubkey)]
 pub struct Condense<'info> {
     /// The Token-2022 mint
     #[account(mut)]
@@ -92,6 +106,27 @@ pub struct Condense<'info> {
 
     /// The tree account that is updated with every transfer of the token
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
+
+    /// Tracks the total withdrawn amount for each recipient
+    /// This is how double-spends are prevented without nullifiers
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = 8 + 64,
+        seeds = [b"withdrawn", mint.key().as_ref(), recipient.as_ref()],
+        bump
+    )]
+    pub withdrawn: Account<'info, WithdrawnTracker>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct WithdrawnTracker {
+    total_withdrawn: u64,
 }
 
 #[error_code]
@@ -100,6 +135,12 @@ pub enum ErrorCode {
     BadAmount,
     #[msg("invalid proof")]
     InvalidProof,
+    #[msg("invalid recipient bytes")]
+    InvalidRecipient,
+    #[msg("recipient does not match public witness")]
+    RecipientMismatch,
     #[msg("Merkle root not found in recent root history")]
     MerkleRootNotInHistory,
+    #[msg("arithmetic overflow")]
+    ArithmeticOverflow,
 }

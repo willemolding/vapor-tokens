@@ -38,13 +38,6 @@ pub mod transfer_hook {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        // if let Some(admin_key) = ADMIN_PUBKEY {
-        //     require!(
-        //         ctx.accounts.authority.key().eq(&admin_key),
-        //         ErrorCode::Unauthorized
-        //     );
-        // }
-
         let tree_account = &mut ctx.accounts.tree_account.load_init()?;
         tree_account.authority = ctx.accounts.authority.key();
         tree_account.next_index = 0;

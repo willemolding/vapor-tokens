@@ -21,7 +21,7 @@ custom-panic = []
 
 
 [dependencies]
-anchor-lang = "0.32.1"
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"]}
 anchor-spl = { version = "0.32.1" }
 vaportoken-transfer-hook = { path = "../vaportoken-transfer-hook", features = ["no-entrypoint"] }
 gnark-verifier-solana = { git = "https://github.com/reilabs/sunspot", rev = "8e61988da7b35add0e1384962f46c46b367235c1" }
