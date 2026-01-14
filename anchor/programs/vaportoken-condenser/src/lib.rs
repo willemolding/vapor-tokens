@@ -44,28 +44,25 @@ pub mod condenser {
         msg!("Current tree root: {:?}", tree_account.root);
 
         if !MerkleTree::is_known_root(&tree_account, merkle_root) {
-            panic!("Merkle root not in history");
             return Err(ErrorCode::MerkleRootNotInHistory.into());
         }
 
-        panic!("Passed all checks, mint the token!");
+        // If passed then call mint_to CPI to mint new tokens
+        let bump = ctx.bumps.mint_authority;
+        let key = ctx.accounts.mint.key();
+        let signer_seeds: &[&[&[u8]]] = &[&[b"mint_authority", key.as_ref(), &[bump]]];
 
-        // // If passed then call mint_to CPI to mint new tokens
-        // let bump = ctx.bumps.mint_authority;
-        // let key = ctx.accounts.mint.key();
-        // let signer_seeds: &[&[&[u8]]] = &[&[b"mint_authority", key.as_ref(), &[bump]]];
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            MintTo {
+                mint: ctx.accounts.mint.to_account_info(),
+                to: ctx.accounts.to.to_account_info(),
+                authority: ctx.accounts.mint_authority.to_account_info(),
+            },
+            signer_seeds,
+        );
 
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info(),
-        //     MintTo {
-        //         mint: ctx.accounts.mint.to_account_info(),
-        //         to: ctx.accounts.to.to_account_info(),
-        //         authority: ctx.accounts.mint_authority.to_account_info(),
-        //     },
-        //     signer_seeds,
-        // );
-
-        // mint_to(cpi_ctx, 1)?;
+        mint_to(cpi_ctx, 1)?;
 
         Ok(())
     }
@@ -74,6 +71,7 @@ pub mod condenser {
 #[derive(Accounts)]
 pub struct Condense<'info> {
     /// The Token-2022 mint
+    #[account(mut)]
     pub mint: InterfaceAccount<'info, Mint>,
 
     /// Recipient token account (Token-2022)
