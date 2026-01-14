@@ -16,8 +16,6 @@ use anchor_spl::{
     },
     token_interface::{Mint, TokenAccount},
 };
-use ark_bn254::Fr as NoirField;
-use ark_ff::{BigInt, BigInteger, PrimeField};
 use light_hasher::{Hasher, Poseidon};
 pub use merkle_tree::{MerkleTree, MerkleTreeAccount};
 use spl_discriminator::SplDiscriminate;
@@ -27,6 +25,7 @@ use spl_tlv_account_resolution::{
 use spl_transfer_hook_interface::instruction::{
     ExecuteInstruction, InitializeExtraAccountMetaListInstruction,
 };
+use utils::pack_bytes;
 
 mod merkle_tree;
 
@@ -34,6 +33,8 @@ declare_id!("E8a5MFnAPA92apKrYyTgE9x2e3U165GpRPfdTobauDmn");
 
 #[program]
 pub mod transfer_hook {
+    use utils::{fr_to_be_32, u64_to_be_32};
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
@@ -77,7 +78,7 @@ pub mod transfer_hook {
         // Fail this instruction if it is not called from within a transfer hook
         check_is_transferring(&ctx)?;
 
-        let destination = pack_bytes(&ctx.accounts.destination_token.key().as_ref())
+        let destination = pack_bytes(&ctx.accounts.destination_token.owner.as_ref())
             .iter()
             .map(fr_to_be_32)
             .collect::<Vec<[u8; 32]>>();
@@ -111,46 +112,6 @@ fn check_is_transferring(ctx: &Context<TransferHook>) -> Result<()> {
     }
 
     Ok(())
-}
-
-#[inline]
-fn fr_from_31_le_bytes(chunk: &[u8; 31]) -> NoirField {
-    // 31 bytes = 248 bits, fits comfortably below NoirField modulus, so no reduction issues.
-    let mut limbs = [0u64; 4];
-
-    for (i, &b) in chunk.iter().enumerate() {
-        let limb = i >> 3; // i / 8
-        let shift = (i & 7) << 3; // (i % 8) * 8
-        limbs[limb] |= (b as u64) << shift;
-    }
-
-    NoirField::from_bigint(BigInt::new(limbs)).expect("31-byte value is < modulus")
-}
-
-pub fn pack_bytes(bytes: &[u8]) -> Vec<NoirField> {
-    const CHUNK: usize = 31;
-    let mut out = Vec::with_capacity((bytes.len() + CHUNK - 1) / CHUNK);
-
-    for c in bytes.chunks(CHUNK) {
-        let mut chunk = [0u8; 31];
-        chunk[..c.len()].copy_from_slice(c); // zero-pad like Noir's pad_end
-        out.push(fr_from_31_le_bytes(&chunk));
-    }
-    out
-}
-
-fn fr_to_be_32(f: &NoirField) -> [u8; 32] {
-    let bytes = f.into_bigint().to_bytes_be();
-    let mut out = [0u8; 32];
-    let start = 32 - bytes.len();
-    out[start..].copy_from_slice(&bytes);
-    out
-}
-
-fn u64_to_be_32(x: u64) -> [u8; 32] {
-    let mut out = [0u8; 32];
-    out[24..].copy_from_slice(&x.to_be_bytes());
-    out
 }
 
 #[derive(Accounts)]

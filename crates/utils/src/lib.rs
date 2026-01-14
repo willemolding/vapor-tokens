@@ -1,5 +1,5 @@
 use ark_bn254::Fr as NoirField;
-use ark_ff::{BigInt, PrimeField};
+use ark_ff::{BigInt, BigInteger, PrimeField};
 
 #[inline]
 fn fr_from_31_le_bytes(chunk: &[u8; 31]) -> NoirField {
@@ -24,5 +24,33 @@ pub fn pack_bytes(bytes: &[u8]) -> Vec<NoirField> {
         chunk[..c.len()].copy_from_slice(c); // zero-pad like Noir's pad_end
         out.push(fr_from_31_le_bytes(&chunk));
     }
+    out
+}
+
+pub fn unpack_bytes_from_le_fields(fields: &[[u8; 32]], len: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(fields.len() * 31);
+
+    for b in fields {
+        let f = NoirField::from_be_bytes_mod_order(b);
+        let mut bytes = f.into_bigint().to_bytes_le();
+        bytes.resize(31, 0); // match pack_bytes padding
+        out.extend_from_slice(&bytes[..31]);
+    }
+
+    out.truncate(len);
+    out
+}
+
+pub fn fr_to_be_32(f: &NoirField) -> [u8; 32] {
+    let bytes = f.into_bigint().to_bytes_be();
+    let mut out = [0u8; 32];
+    let start = 32 - bytes.len();
+    out[start..].copy_from_slice(&bytes);
+    out
+}
+
+pub fn u64_to_be_32(x: u64) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    out[24..].copy_from_slice(&x.to_be_bytes());
     out
 }

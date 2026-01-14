@@ -4,16 +4,6 @@ version = "0.1.0"
 edition = "2024"
 authors = ["Willem Olding <willemolding@gmail.com>"]
 
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-name = "gen-vaporize-address"
-path = "src/main.rs"
-
-[features]
-default = ["dep:anyhow", "dep:bs58", "dep:qr2term"]
-
 [dependencies]
 ark-bn254 = "0.5.0"
 ark-ec = "0.5.0"
@@ -24,10 +14,6 @@ light-poseidon = "0.4.0"
 rand = "0.8.5"
 utils ={ path = "../utils" }
 
-# bin only dependencies
-anyhow = { version = "1.0.100", optional = true }
-bs58 = { version = "0.5.1", optional = true }
-qr2term = { version = "0.3", optional = true }
 
 [dev-dependencies]
 curve25519-dalek = "4.1.3"

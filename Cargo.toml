@@ -1,11 +1,6 @@
 [workspace]
 resolver = "3"
-authors = ["Willem Olding <willemolding@gmail.com>"]
 
 members = [
     "crates/*",
-]
-
-ignore = [
-    "anchor",
 ]

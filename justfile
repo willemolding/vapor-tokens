@@ -11,8 +11,8 @@ build_gnark: build_acir
 trusted_setup: build_gnark
     cd circuits/condenser && sunspot setup ./target/condenser.ccs
 
-gnark_prove: trusted_setup
+gnark_prove: execute
     cd circuits/condenser && sunspot prove ./target/condenser.json ./target/condenser.gz ./target/condenser.ccs ./target/condenser.pk
 
-build_verifier_program: trusted_setup
+build_verifier_program:
     cargo xtask codegen

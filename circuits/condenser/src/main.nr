@@ -2,6 +2,7 @@ use dep::bignum::BigNum;
 use dep::bignum::fields::ed25519Fq::ED25519_Fq as Fq;
 use dep::poseidon::poseidon::bn254::{hash_3};
 use ed25519::{assert_is_in_subgroup, assert_is_on_curve, decompress_y};
+use nodash::pack_bytes;
 
 mod ed25519;
 mod merkle;
@@ -15,12 +16,13 @@ fn main(
     recipient: pub [Field; 2],
     amount: pub Field,
     merkle_root: pub Field,
-    vapour_addr: [u8; 32],
+    vapor_addr: [u8; 32],
     merkle_proof: [Field; TREE_HEIGHT],
     merkle_proof_indices: [u1; TREE_HEIGHT],
     secret: Field
 ) {
-    let leaf = hash_3([recipient[0], recipient[1], amount]);
+    let vapor_addr_field = pack_bytes(vapor_addr);
+    let leaf = hash_3([vapor_addr_field[0], vapor_addr_field[1], amount]);
 
     let derived_root = merkle::recover_root(
         leaf,
@@ -33,7 +35,7 @@ fn main(
     let x = ed25519_fq_from_noir_field(hash_3([recipient[0], recipient[1], secret]));
 
     // y is derived from vapour_addr which is in edwards compressed form
-    let y = decompress_y(vapour_addr);
+    let y = decompress_y(vapor_addr);
 
     y.validate_in_field();
     x.validate_in_field();

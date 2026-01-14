@@ -8,7 +8,7 @@ pub struct CondenserWitness<const HEIGHT: usize> {
     pub recipient: [NoirField; 2],
     pub amount: NoirField,
     pub merkle_root: NoirField,
-    pub vapour_addr: [u8; 32],
+    pub vapor_addr: [u8; 32],
     pub merkle_proof: [NoirField; HEIGHT],
     pub merkle_proof_indices: [u8; HEIGHT],
     pub secret: NoirField,
@@ -21,7 +21,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
         recipient: [u8; 32],
         amount: u64,
         merkle_root: [u8; 32],
-        vapour_addr: [u8; 32],
+        vapor_addr: [u8; 32],
         merkle_proof: [[u8; 32]; HEIGHT],
         merkle_proof_indices: [u8; HEIGHT],
         secret: NoirField,
@@ -32,7 +32,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
                 .expect("recipient must be 2 field elements"),
             amount: NoirField::from(amount),
             merkle_root: NoirField::from_be_bytes_mod_order(&merkle_root),
-            vapour_addr: vapour_addr,
+            vapor_addr,
             merkle_proof: merkle_proof.map(|node| NoirField::from_be_bytes_mod_order(&node)),
             merkle_proof_indices,
             secret,
@@ -58,7 +58,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
 
         toml_str.push_str(&format!(
             "vapour_addr = {:?}\n",
-            self.vapour_addr
+            self.vapor_addr
                 .iter()
                 .map(|b| b.to_string())
                 .collect::<Vec<_>>()
@@ -95,7 +95,7 @@ mod tests {
             recipient: [NoirField::from(1u64); 2],
             amount: NoirField::from(42u64),
             merkle_root: NoirField::from(2u64),
-            vapour_addr: [3u8; 32],
+            vapor_addr: [3u8; 32],
             merkle_proof: [NoirField::from(0u64); 26],
             merkle_proof_indices: [0u8; 26],
             secret: NoirField::from(4u64),

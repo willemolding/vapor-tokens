@@ -3261,12 +3261,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254 0.5.0",
+ "ark-ff 0.5.0",
+]
+
+[[package]]
 name = "vaportoken-condenser"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
  "gnark-verifier-solana",
+ "utils",
  "vaportoken-transfer-hook",
 ]
 
@@ -3276,14 +3285,13 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "ark-bn254 0.5.0",
- "ark-ff 0.5.0",
  "bytemuck",
  "light-hasher",
  "spl-discriminator",
  "spl-tlv-account-resolution",
  "spl-transfer-hook-interface",
  "thiserror 2.0.17",
+ "utils",
 ]
 
 [[package]]

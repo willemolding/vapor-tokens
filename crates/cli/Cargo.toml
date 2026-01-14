@@ -8,4 +8,9 @@ transfer-tree = { path = "../../crates/transfer-tree" }
 condenser-witness = { path = "../../crates/condenser-witness" }
 vaporize-addresses = { path = "../../crates/vaporize-addresses" }
 
+ark-bn254 = "0.5.0"
 rand = "0.8.5"
+clap = { version = "4.5.54", features = ["derive"] }
+anyhow = { version = "1.0.100" }
+bs58 = { version = "0.5.1" }
+qr2term = { version = "0.3" }
