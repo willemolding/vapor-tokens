@@ -3276,6 +3276,8 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "ark-bn254 0.5.0",
+ "ark-ff 0.5.0",
  "bytemuck",
  "light-hasher",
  "spl-discriminator",

@@ -1,6 +1,6 @@
 use dep::bignum::BigNum;
 use dep::bignum::fields::ed25519Fq::ED25519_Fq as Fq;
-use dep::poseidon::poseidon::bn254::hash_2;
+use dep::poseidon::poseidon::bn254::{hash_2, hash_3};
 use ed25519::{assert_is_in_subgroup, assert_is_on_curve, decompress_y};
 use nodash::pack_bytes;
 
@@ -22,7 +22,7 @@ fn main(
     secret: Field
 ) {
     let recipient_field = pack_bytes(recipient);
-    let leaf = hash_2([hash_2(recipient_field), amount]);
+    let leaf = hash_3([recipient_field[0], recipient_field[1], amount]);
 
     let derived_root = merkle::recover_root(
         leaf,

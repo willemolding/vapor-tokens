@@ -23,6 +23,8 @@ custom-panic = []
 [dependencies]
 anchor-lang = { version = "0.32.1", features = ["interface-instructions"] }
 anchor-spl = "0.32.1"
+ark-bn254 = "0.5.0"
+ark-ff = "0.5.0"
 bytemuck = { version = "1.20.0", features = ["min_const_generics"] }
 spl-discriminator = "0.4"
 spl-tlv-account-resolution = "0.10.0"

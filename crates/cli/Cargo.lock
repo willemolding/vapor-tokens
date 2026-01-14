@@ -886,7 +886,6 @@ dependencies = [
  "ark-bn254",
  "ark-ff",
  "light-hasher",
- "light-poseidon 0.4.0",
  "light-sparse-merkle-tree",
 ]
 
