@@ -91,8 +91,9 @@ mod tests {
         // fuzz a bunch of recipients and check we get valid addresses
         for i in 0..255 {
             let mut rng = OsRng;
-            let (addr, _secret) = generate_vaporize_address(&mut rng, [i; 32]);
+            let (addr, secret) = generate_vaporize_address(&mut rng, [i; 32]);
             println!("Generated address: {:?}", addr);
+            println!("Secret: {:?}", secret);
 
             // check that decompressing works
             CompressedEdwardsY(addr)

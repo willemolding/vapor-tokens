@@ -37,13 +37,7 @@ mod tests {
         let old_root = tree.root();
         let old_root_int = BigUint::from_bytes_be(&old_root);
         println!("Old root: {}", old_root_int);
-        let proof = tree.append_transfer(
-            [
-                156, 111, 42, 136, 201, 208, 254, 61, 196, 52, 59, 38, 121, 179, 123, 10, 198, 128,
-                127, 2, 60, 4, 128, 66, 91, 226, 221, 37, 137, 211, 217, 175,
-            ],
-            2,
-        );
+        let proof = tree.append_transfer([255; 32], 2);
         let new_root = tree.root();
         println!(
             "New root: {:?}",

@@ -1,0 +1,11 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+transfer-tree = { path = "../../crates/transfer-tree" }
+condenser-witness = { path = "../../crates/condenser-witness" }
+vaporize-addresses = { path = "../../crates/vaporize-addresses" }
+
+rand = "0.8.5"

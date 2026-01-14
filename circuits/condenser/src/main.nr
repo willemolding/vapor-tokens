@@ -23,7 +23,7 @@ fn main(
     secret: Field
 ) {
     amount.assert_max_bit_size::<64>();
-    let amount_bytes: [u8; 8] = amount.to_le_bytes();
+    let amount_bytes: [u8; 8] = amount.to_be_bytes();
     let leaf = hashv_to_bn254_field_size_be_2(recipient, amount_bytes);
 
     let derived_root = merkle::recover_root(
