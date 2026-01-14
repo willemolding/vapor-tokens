@@ -314,7 +314,7 @@ describe("vapor-tokens", () => {
     );
     await provider.sendAndConfirm(createAtaTx, []);
 
-    const initialAmount = 100n;
+    const initialAmount = 10000;
     const mintToIx = createMintToInstruction(
       mint.publicKey,
       payerAta,
@@ -335,7 +335,7 @@ describe("vapor-tokens", () => {
     );
     await provider.sendAndConfirm(new Transaction().add(setAuthorityIx), []);
 
-    const transferAmount = 10n;
+    const transferAmount = 1000n;
     const transferIx = await createTransferCheckedWithTransferHookInstruction(
       connection,
       payerAta,

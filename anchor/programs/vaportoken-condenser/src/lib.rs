@@ -25,7 +25,7 @@ pub mod condenser {
 
         // Deserialize public inputs
         let recipient = unpack_bytes_from_le_fields(&pub_witness.entries[0..2], 32);
-        let amount = pub_witness.entries[2];
+        let amount = u64::from_be_bytes(pub_witness.entries[2][24..].try_into().unwrap());
         let merkle_root = pub_witness.entries[3];
 
         msg!("Recipient: {:?}", recipient);
@@ -62,7 +62,7 @@ pub mod condenser {
             signer_seeds,
         );
 
-        mint_to(cpi_ctx, 1)?;
+        mint_to(cpi_ctx, amount)?;
 
         Ok(())
     }
