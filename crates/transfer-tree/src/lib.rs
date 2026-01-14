@@ -1,5 +1,7 @@
-use light_compressed_account::hashv_to_bn254_field_size_be;
+use ark_bn254::Fr as NoirField;
+use ark_ff::{AdditiveGroup, BigInteger, One, PrimeField};
 use light_hasher::Poseidon;
+use light_poseidon::{Poseidon as FieldPoseidon, PoseidonHasher};
 use light_sparse_merkle_tree::SparseMerkleTree;
 
 pub type TransferTree<const HEIGHT: usize> = SparseMerkleTree<Poseidon, HEIGHT>;
@@ -11,8 +13,13 @@ pub trait TransferTreeExt<const HEIGHT: usize> {
 
 impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
     fn append_transfer(&mut self, destination: [u8; 32], amount: u64) -> [[u8; 32]; HEIGHT] {
-        let leaf = hashv_to_bn254_field_size_be(&[&destination, &amount.to_be_bytes()]);
-        self.append(leaf)
+        let mut h = FieldPoseidon::<NoirField>::new_circom(2).unwrap();
+        let destination = pack_bytes(&destination);
+
+        let dest_hashed = h.hash(&destination).unwrap();
+        let leaf = h.hash(&[dest_hashed, NoirField::from(amount)]).unwrap();
+
+        self.append(leaf.into_bigint().to_bytes_be().try_into().unwrap())
     }
 
     fn proof_indices(&self, index: u64) -> [u8; HEIGHT] {
@@ -24,6 +31,24 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
         }
         indices
     }
+}
+
+fn pack_bytes(bytes: &[u8]) -> Vec<NoirField> {
+    const CHUNK: usize = 31;
+    bytes
+        .chunks(CHUNK)
+        .map(|chunk| {
+            let mut acc = NoirField::ZERO;
+            let mut base = NoirField::one();
+
+            for &b in chunk {
+                acc += base * NoirField::from(b as u64);
+                base *= NoirField::from(256u64);
+            }
+
+            acc
+        })
+        .collect()
 }
 
 #[cfg(test)]

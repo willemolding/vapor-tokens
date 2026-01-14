@@ -2,10 +2,9 @@ use dep::bignum::BigNum;
 use dep::bignum::fields::ed25519Fq::ED25519_Fq as Fq;
 use dep::poseidon::poseidon::bn254::hash_2;
 use ed25519::{assert_is_in_subgroup, assert_is_on_curve, decompress_y};
-use hash_to_field::hashv_to_bn254_field_size_be_2;
+use nodash::pack_bytes;
 
 mod ed25519;
-mod hash_to_field;
 mod merkle;
 
 global TREE_HEIGHT: u32 = 26;
@@ -22,9 +21,8 @@ fn main(
     merkle_proof_indices: [u1; TREE_HEIGHT],
     secret: Field
 ) {
-    amount.assert_max_bit_size::<64>();
-    let amount_bytes: [u8; 8] = amount.to_be_bytes();
-    let leaf = hashv_to_bn254_field_size_be_2(recipient, amount_bytes);
+    let recipient_field = pack_bytes(recipient);
+    let leaf = hash_2([hash_2(recipient_field), amount]);
 
     let derived_root = merkle::recover_root(
         leaf,
