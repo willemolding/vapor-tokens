@@ -68,14 +68,16 @@ pub mod condenser {
             signer_seeds,
         );
 
-        // Record this withdrawal to prevent double-withdrawals
+        // Mint the delta between the total withdrawn and the amount specified in the proof
         let withdrawn = &mut ctx.accounts.withdrawn;
-        withdrawn.total_withdrawn = withdrawn
-            .total_withdrawn
-            .checked_add(amount)
-            .ok_or(ErrorCode::ArithmeticOverflow)?;
+        let delta = amount
+            .checked_sub(withdrawn.total_withdrawn)
+            .ok_or(ErrorCode::BadAmount)?;
 
-        mint_to(cpi_ctx, amount)?;
+        // Store the new amount withdrawn
+        withdrawn.total_withdrawn = amount;
+
+        mint_to(cpi_ctx, delta)?;
 
         Ok(())
     }
