@@ -1,0 +1,7 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gnark-verifier-solana = { git = "https://github.com/reilabs/sunspot", rev = "8e61988da7b35add0e1384962f46c46b367235c1" }

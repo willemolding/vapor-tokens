@@ -3,6 +3,8 @@ use anchor_spl::token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInte
 use gnark_verifier_solana::{proof::GnarkProof, verifier::GnarkVerifier, witness::GnarkWitness};
 use vaportoken_transfer_hook::MerkleTreeAccount;
 
+mod vk;
+
 declare_id!("LfXPYkVoeNy5933hcHZChMHREpwaNvnxpT1v6xdxajG");
 
 #[program]
@@ -14,15 +16,15 @@ pub mod condenser {
         proof_bytes: Vec<u8>,
         pub_witness_bytes: Vec<u8>,
     ) -> Result<()> {
-        // TODO: Add mint rules here
-        // require!(amount > 0, MyErr::BadAmount);
-
         // verify the ZK proof
-        // let proof = GnarkProof::from_bytes(&proof_bytes).unwrap();
-        // let pub_witness = GnarkWitness::from_bytes(&pub_witness_bytes).unwrap();
+        let proof = GnarkProof::from_bytes(&proof_bytes).unwrap();
+        let pub_witness = GnarkWitness::from_bytes(&pub_witness_bytes).unwrap();
 
-        // let mut verifier: GnarkVerifier<NR_INPUTS> = GnarkVerifier::new(&vk::VK);
-        // let result = verifier.verify(proof, pub_witness);
+        const NR_INPUTS: usize = vk::VK.nr_pubinputs;
+        let mut verifier: GnarkVerifier<NR_INPUTS> = GnarkVerifier::new(&vk::VK);
+        verifier
+            .verify(proof, pub_witness)
+            .map_err(|_| ErrorCode::InvalidProof)?;
 
         // check the root is a known root in our tree
 
@@ -73,7 +75,9 @@ pub struct Condense<'info> {
 }
 
 #[error_code]
-pub enum MyErr {
+pub enum ErrorCode {
     #[msg("bad amount")]
     BadAmount,
+    #[msg("invalid proof")]
+    InvalidProof,
 }
