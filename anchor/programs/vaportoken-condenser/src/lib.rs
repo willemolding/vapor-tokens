@@ -16,10 +16,18 @@ pub mod condenser {
         proof_bytes: Vec<u8>,
         pub_witness_bytes: Vec<u8>,
     ) -> Result<()> {
-        // verify the ZK proof
         let proof = GnarkProof::from_bytes(&proof_bytes).unwrap();
         let pub_witness = GnarkWitness::from_bytes(&pub_witness_bytes).unwrap();
 
+        // Deserialize public inputs
+        let recipient = pub_witness.entries[0..32]
+            .iter()
+            .map(|&b| b[0]) // check this
+            .collect::<Vec<u8>>();
+        let amount = pub_witness.entries[32];
+        let merkle_root = pub_witness.entries[33];
+
+        // Verify proof
         const NR_INPUTS: usize = vk::VK.nr_pubinputs;
         let mut verifier: GnarkVerifier<NR_INPUTS> = GnarkVerifier::new(&vk::VK);
         verifier
