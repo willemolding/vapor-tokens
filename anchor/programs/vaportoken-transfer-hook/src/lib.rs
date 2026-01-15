@@ -37,8 +37,8 @@ pub mod transfer_hook {
 
     use super::*;
 
-pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-    let tree_account = &mut ctx.accounts.tree_account.load_init()?;
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        let tree_account = &mut ctx.accounts.tree_account.load_init()?;
         tree_account.authority = ctx.accounts.authority.key();
         tree_account.next_index = 0;
         tree_account.root_index = 0;
@@ -109,6 +109,8 @@ fn check_is_transferring(ctx: &Context<TransferHook>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
+    pub mint: InterfaceAccount<'info, Mint>,
+
     #[account(
         init,
         payer = authority,
@@ -117,8 +119,6 @@ pub struct Initialize<'info> {
         bump
     )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
-
-    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut)]
     pub authority: Signer<'info>,

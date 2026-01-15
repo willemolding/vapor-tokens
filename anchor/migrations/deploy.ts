@@ -129,20 +129,15 @@ module.exports = async function (provider: anchor.AnchorProvider) {
     transferHook ? transferHook.programId.toBase58() : "none"
   );
 
-  const treeAccountInfo = await connection.getAccountInfo(treeAccount);
-  if (!treeAccountInfo) {
-    await transferHookProgram.methods
-      .initialize()
-      .accountsStrict({
-        treeAccount,
-        mint: mint.publicKey,
-        authority: payer,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-  } else {
-    console.log("MerkleTree already initialized:", treeAccount.toBase58());
-  }
+  await transferHookProgram.methods
+    .initialize()
+    .accountsStrict({
+      treeAccount,
+      mint: mint.publicKey,
+      authority: payer,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
 
   await transferHookProgram.methods
     .initializeExtraAccountMetaList()
@@ -194,7 +189,7 @@ module.exports = async function (provider: anchor.AnchorProvider) {
   const initialAmount = supply;
   const mintToIx = createMintToInstruction(
     mint.publicKey,
-    payerAta,
+    recipientAta,
     payer,
     initialAmount,
     [],
@@ -202,42 +197,42 @@ module.exports = async function (provider: anchor.AnchorProvider) {
   );
   await provider.sendAndConfirm(new Transaction().add(mintToIx), []);
 
-  const setAuthorityIx = createSetAuthorityInstruction(
-    mint.publicKey,
-    payer,
-    AuthorityType.MintTokens,
-    mintAuthority,
-    [],
-    TOKEN_2022_PROGRAM_ID
-  );
-  await provider.sendAndConfirm(new Transaction().add(setAuthorityIx), []);
+  // const setAuthorityIx = createSetAuthorityInstruction(
+  //   mint.publicKey,
+  //   payer,
+  //   AuthorityType.MintTokens,
+  //   mintAuthority,
+  //   [],
+  //   TOKEN_2022_PROGRAM_ID
+  // );
+  // await provider.sendAndConfirm(new Transaction().add(setAuthorityIx), []);
 
-  const transferAmount = initialAmount;
-  const beforeTree = await transferHookProgram.account.merkleTreeAccount.fetch(
-    treeAccount
-  );
-  const transferIx = await createTransferCheckedWithTransferHookInstruction(
-    connection,
-    payerAta,
-    mint.publicKey,
-    recipientAta,
-    payer,
-    transferAmount,
-    decimals,
-    [],
-    undefined,
-    TOKEN_2022_PROGRAM_ID
-  );
-  await provider.sendAndConfirm(new Transaction().add(transferIx), []);
-  const afterTree = await transferHookProgram.account.merkleTreeAccount.fetch(
-    treeAccount
-  );
-  console.log(
-    "Merkle tree next_index:",
-    beforeTree.nextIndex.toNumber(),
-    "->",
-    afterTree.nextIndex.toNumber()
-  );
+  // const transferAmount = initialAmount;
+  // const beforeTree = await transferHookProgram.account.merkleTreeAccount.fetch(
+  //   treeAccount
+  // );
+  // const transferIx = await createTransferCheckedWithTransferHookInstruction(
+  //   connection,
+  //   payerAta,
+  //   mint.publicKey,
+  //   recipientAta,
+  //   payer,
+  //   transferAmount,
+  //   decimals,
+  //   [],
+  //   undefined,
+  //   TOKEN_2022_PROGRAM_ID
+  // );
+  // await provider.sendAndConfirm(new Transaction().add(transferIx), []);
+  // const afterTree = await transferHookProgram.account.merkleTreeAccount.fetch(
+  //   treeAccount
+  // );
+  // console.log(
+  //   "Merkle tree next_index:",
+  //   beforeTree.nextIndex.toNumber(),
+  //   "->",
+  //   afterTree.nextIndex.toNumber()
+  // );
 
   console.log("Mint:", mint.publicKey.toBase58());
   console.log("Token-2022 program:", TOKEN_2022_PROGRAM_ID.toBase58());

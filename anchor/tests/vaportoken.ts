@@ -95,7 +95,6 @@ describe("vapor-tokens", () => {
         systemProgram: SystemProgram.programId,
       })
       .rpc();
-    
 
     await transferHookProgram.methods
       .initializeExtraAccountMetaList()
