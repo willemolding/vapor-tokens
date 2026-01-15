@@ -57,7 +57,7 @@ describe("vapor-tokens", () => {
       transferHookProgram.programId
     );
     const [treeAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from("merkle_tree")],
+      [Buffer.from("merkle_tree"), mint.publicKey.toBuffer()],
       transferHookProgram.programId
     );
 
@@ -86,24 +86,16 @@ describe("vapor-tokens", () => {
     await provider.sendAndConfirm(createMintTx, [mint]);
     console.log("Mint address:", mint.publicKey.toBase58());
 
-    let hasTree = true;
-    try {
-      await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
-    } catch {
-      console.log("Merkle tree account does not exist yet. Calling initialize");
-      hasTree = false;
-    }
-
-    if (!hasTree) {
-      await transferHookProgram.methods
-        .initialize()
-        .accountsStrict({
-          treeAccount,
-          authority: payer,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-    }
+    await transferHookProgram.methods
+      .initialize()
+      .accountsStrict({
+        treeAccount,
+        mint: mint.publicKey,
+        authority: payer,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+    
 
     await transferHookProgram.methods
       .initializeExtraAccountMetaList()

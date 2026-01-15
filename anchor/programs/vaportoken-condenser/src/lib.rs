@@ -107,6 +107,11 @@ pub struct Condense<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 
     /// The tree account that is updated with every transfer of the token
+    #[account(
+        seeds = [b"merkle_tree", mint.key().as_ref()],
+        seeds::program = vaportoken_transfer_hook::ID,
+        bump = tree_account.load()?.bump
+    )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
 
     /// Tracks the total withdrawn amount for each recipient

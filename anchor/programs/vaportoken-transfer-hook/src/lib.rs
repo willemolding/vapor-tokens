@@ -37,8 +37,8 @@ pub mod transfer_hook {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        let tree_account = &mut ctx.accounts.tree_account.load_init()?;
+pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    let tree_account = &mut ctx.accounts.tree_account.load_init()?;
         tree_account.authority = ctx.accounts.authority.key();
         tree_account.next_index = 0;
         tree_account.root_index = 0;
@@ -113,10 +113,12 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = 8 + std::mem::size_of::<MerkleTreeAccount>(),
-        seeds = [b"merkle_tree"],
+        seeds = [b"merkle_tree", mint.key().as_ref()],
         bump
     )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
+
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -150,9 +152,12 @@ pub struct InitializeExtraAccountMetaList<'info> {
 impl<'info> InitializeExtraAccountMetaList<'info> {
     pub fn extra_account_metas() -> Result<Vec<ExtraAccountMeta>> {
         Ok(vec![ExtraAccountMeta::new_with_seeds(
-            &[Seed::Literal {
-                bytes: b"merkle_tree".to_vec(),
-            }],
+            &[
+                Seed::Literal {
+                    bytes: b"merkle_tree".to_vec(),
+                },
+                Seed::AccountKey { index: 1 },
+            ],
             false, // is_signer
             true,  // is_writable
         )?])
@@ -178,7 +183,7 @@ pub struct TransferHook<'info> {
 
     #[account(
         mut,
-        seeds = [b"merkle_tree"],
+        seeds = [b"merkle_tree", mint.key().as_ref()],
         bump = tree_account.load()?.bump
     )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
