@@ -12,6 +12,7 @@ use vaporize_addresses::generate_vaporize_address;
 use crate::{borsh_record::BorshRecord, sync::TransferEvent};
 
 mod borsh_record;
+mod condense;
 mod sync;
 
 const VAP_ADDR: TableDefinition<[u8; 32], BorshRecord<VaporAddressRecord>> =
@@ -27,6 +28,12 @@ const TRANSFERS: TableDefinition<u64, BorshRecord<TransferEvent>> =
 struct Args {
     #[command(subcommand)]
     cmd: Command,
+
+    #[arg(long, env = "SOL_RPC", default_value = "https://api.devnet.solana.com")]
+    rpc_url: String,
+
+    #[arg(long, env = "MINT")]
+    mint: String,
 }
 
 #[derive(Clone, clap::Subcommand)]
@@ -37,6 +44,10 @@ enum Command {
     },
     List,
     Sync,
+    Condense {
+        #[arg(long)]
+        vapor_addr: Option<String>,
+    },
     BuildWitness {
         #[arg(long)]
         vapor_addr: Option<String>,
@@ -68,7 +79,10 @@ fn main() -> anyhow::Result<()> {
     match args.cmd {
         Command::GenAddress { recipient } => gen_vapor_address(&db, &recipient),
         Command::List => list(&db),
-        Command::Sync => sync::sync(&db),
+        Command::Sync => sync::sync(&db, &args.rpc_url, &args.mint),
+        Command::Condense { vapor_addr } => {
+            condense::condense(&db, &args.rpc_url, &args.mint, &vapor_addr)
+        }
         Command::BuildWitness {
             vapor_addr,
             amount,

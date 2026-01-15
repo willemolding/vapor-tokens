@@ -17,8 +17,7 @@ pub struct TransferEvent {
     pub amount: u64,
 }
 
-pub fn sync(db: &redb::Database) -> anyhow::Result<()> {
-    let rpc_url = "http://127.0.0.1:8899"; // or your RPC
+pub fn sync(db: &redb::Database, rpc_url: &str, mint: &str) -> anyhow::Result<()> {
     let client = RpcClient::new_with_timeout_and_commitment(
         rpc_url.to_string(),
         Duration::from_secs(30),
@@ -26,7 +25,7 @@ pub fn sync(db: &redb::Database) -> anyhow::Result<()> {
     );
 
     // Anchor on the mint
-    let mint = Pubkey::from_str("5jGT5SXTwDrmL2RonHwNzHbHGrBCnH9RyViq6KVvoEsW")?;
+    let mint = Pubkey::from_str(mint)?;
 
     // Your transfer-hook program id (string match in logs)
     let hook_program = "E8a5MFnAPA92apKrYyTgE9x2e3U165GpRPfdTobauDmn";
