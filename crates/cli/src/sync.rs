@@ -9,12 +9,12 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
 use std::{str::FromStr, time::Duration};
 
-use crate::SPENDS;
+use crate::TRANSFERS;
 
 #[derive(Debug, BorshDeserialize, BorshSerialize, PartialEq)]
 pub struct TransferEvent {
-    to: Pubkey,
-    amount: u64,
+    pub to: [u8; 32],
+    pub amount: u64,
 }
 
 pub fn sync(db: &redb::Database) -> anyhow::Result<()> {
@@ -84,7 +84,7 @@ pub fn sync(db: &redb::Database) -> anyhow::Result<()> {
 
                                 let write_txn = db.begin_write()?;
                                 {
-                                    let mut table = write_txn.open_table(SPENDS)?;
+                                    let mut table = write_txn.open_table(TRANSFERS)?;
 
                                     if table.insert(&tx.slot, &event)?.is_some() {
                                         tracing::debug!(

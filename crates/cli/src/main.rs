@@ -17,7 +17,10 @@ mod sync;
 const VAP_ADDR: TableDefinition<[u8; 32], BorshRecord<VaporAddressRecord>> =
     TableDefinition::new("vapor-addresses");
 
-const SPENDS: TableDefinition<u64, BorshRecord<TransferEvent>> = TableDefinition::new("spends");
+/// Table for recorded spends index by slot.
+/// This is a little bit fraught -- it assumes only one spend per slot which may not hold in reality
+const TRANSFERS: TableDefinition<u64, BorshRecord<TransferEvent>> =
+    TableDefinition::new("transfers");
 
 #[derive(clap::Parser)]
 #[command(version, about, long_about = None)]
@@ -54,7 +57,6 @@ struct VaporAddressRecord {
     addr: [u8; 32],
     recipient: [u8; 32],
     secret: [u8; 32],
-    balance: Option<u64>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -96,7 +98,6 @@ fn gen_vapor_address(db: &redb::Database, recipient: &str) -> anyhow::Result<()>
         addr,
         recipient,
         secret: secret_bytes,
-        balance: None,
     };
 
     let write_txn = db.begin_write()?;
@@ -113,9 +114,10 @@ fn gen_vapor_address(db: &redb::Database, recipient: &str) -> anyhow::Result<()>
 fn list(db: &redb::Database) -> anyhow::Result<()> {
     let read_txn = db.begin_read()?;
     {
-        let table = read_txn.open_table(VAP_ADDR)?;
+        let addresses = read_txn.open_table(VAP_ADDR)?;
+        let spends = read_txn.open_table(TRANSFERS)?;
 
-        for result in table.iter()? {
+        for result in addresses.iter()? {
             let (key, record) = result?;
             let address = bs58::encode(key.value()).into_string();
             let recipient = bs58::encode(record.value().recipient).into_string();
@@ -124,10 +126,16 @@ fn list(db: &redb::Database) -> anyhow::Result<()> {
             println!("Vaporize Address: {}", address);
             println!("  Recipient: {}", recipient);
             println!("  Spend Secret: {}", secret);
-            if let Some(balance) = record.value().balance {
-                println!("  Balance: {}", balance);
-            } else {
-                println!("  Balance: <unknown>");
+            println!("  Deposits:");
+            for result in spends.iter()? {
+                let (slot_key, transfer) = result?;
+                if transfer.value().to == key.value() {
+                    println!(
+                        "    Received {} in slot {}",
+                        transfer.value().amount,
+                        slot_key.value()
+                    );
+                }
             }
             println!();
         }
