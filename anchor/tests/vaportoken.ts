@@ -203,6 +203,11 @@ describe("vapor-tokens", () => {
     );
     await provider.sendAndConfirm(new Transaction().add(transferIx), []);
 
+    const treeState =
+      await transferHookProgram.account.merkleTreeAccount.fetch(treeAccount);
+    const rootBytes = Buffer.from(treeState.root as number[]);
+    console.log("Merkle root:", rootBytes.toString("hex"));
+
     const proofPath = path.resolve(
       __dirname,
       "..",

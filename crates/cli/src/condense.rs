@@ -23,7 +23,7 @@ pub fn condense(
 fn build_proof<const HEIGHT: usize>(
     db: &redb::Database,
     index: usize,
-) -> anyhow::Result<[[u8; 32]; HEIGHT]> {
+) -> anyhow::Result<([[u8; 32]; HEIGHT], [u8; 32])> {
     let mut tree = transfer_tree::TransferTree::<HEIGHT>::new_empty();
     let mut proof = BoundedVec::with_capacity(HEIGHT);
     let mut transfer_at_idx = None;
@@ -64,16 +64,16 @@ fn build_proof<const HEIGHT: usize>(
         anyhow::bail!("No transfer found at index {}", index);
     }
 
-    Ok(proof.to_array().unwrap())
+    Ok((proof.to_array().unwrap(), tree.root()))
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::TransferEvent;
 
     const HEIGHT: usize = 26;
 
-    use super::*;
     #[test]
     fn test_build_proof() {
         let file = tempfile::NamedTempFile::new().unwrap();
@@ -91,7 +91,31 @@ mod tests {
         }
         write_txn.commit().unwrap();
 
-        let proof = build_proof::<HEIGHT>(&db, 5).unwrap();
+        let (proof, _root) = build_proof::<HEIGHT>(&db, 5).unwrap();
         assert_eq!(proof.len(), HEIGHT);
+    }
+
+    #[test]
+    fn test_match_anchor_test() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let db = redb::Database::create(file.path()).unwrap();
+        let write_txn = db.begin_write().unwrap();
+        {
+            let mut transfers = write_txn.open_table(TRANSFERS).unwrap();
+            let transfer = TransferEvent {
+                to: bs58::decode("DKp1YW5zcJBR4ujZnbW6gJWFXSWerS6CMJogV4tcfgNh")
+                    .into_vec()
+                    .unwrap()
+                    .try_into()
+                    .unwrap(),
+                amount: 1000,
+            };
+            transfers.insert(&0, &transfer).unwrap();
+        }
+        write_txn.commit().unwrap();
+
+        let (proof, root) = build_proof::<HEIGHT>(&db, 0).unwrap();
+        assert_eq!(proof.len(), HEIGHT);
+        println!("Root: {:?}", hex::encode(root));
     }
 }

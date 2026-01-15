@@ -24,6 +24,7 @@ borsh = { version = "1.6.0", features = ["borsh-derive"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 light-bounded-vec = "2.0.1"
+hex = "0.4.3"
 
 [dev-dependencies]
 tempfile = "3.24.0"
