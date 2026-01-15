@@ -84,6 +84,7 @@ describe("vapor-tokens", () => {
       )
     );
     await provider.sendAndConfirm(createMintTx, [mint]);
+    console.log("Mint address:", mint.publicKey.toBase58());
 
     let hasTree = true;
     try {

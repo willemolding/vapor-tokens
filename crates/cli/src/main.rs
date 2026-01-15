@@ -1,10 +1,23 @@
 use std::str::FromStr;
 
 use ark_bn254::Fr as NoirField;
+use ark_ff::{BigInteger, PrimeField};
+use borsh::{BorshDeserialize, BorshSerialize};
 use clap::Parser;
 use condenser_witness::CondenserWitness;
+use redb::{ReadableDatabase, ReadableTable, TableDefinition};
 use transfer_tree::TransferTreeExt;
 use vaporize_addresses::generate_vaporize_address;
+
+use crate::{borsh_record::BorshRecord, sync::TransferEvent};
+
+mod borsh_record;
+mod sync;
+
+const VAP_ADDR: TableDefinition<[u8; 32], BorshRecord<VaporAddressRecord>> =
+    TableDefinition::new("vapor-addresses");
+
+const SPENDS: TableDefinition<u64, BorshRecord<TransferEvent>> = TableDefinition::new("spends");
 
 #[derive(clap::Parser)]
 #[command(version, about, long_about = None)]
@@ -19,6 +32,8 @@ enum Command {
         #[arg()]
         recipient: String,
     },
+    List,
+    Sync,
     BuildWitness {
         #[arg(long)]
         vapor_addr: Option<String>,
@@ -34,11 +49,24 @@ enum Command {
     },
 }
 
+#[derive(Debug, BorshDeserialize, BorshSerialize, PartialEq)]
+struct VaporAddressRecord {
+    addr: [u8; 32],
+    recipient: [u8; 32],
+    secret: [u8; 32],
+    balance: Option<u64>,
+}
+
 fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
+    let db = redb::Database::create("wallet.redb")?;
     let args = Args::parse();
 
     match args.cmd {
-        Command::GenAddress { recipient } => gen_vapor_address(&recipient),
+        Command::GenAddress { recipient } => gen_vapor_address(&db, &recipient),
+        Command::List => list(&db),
+        Command::Sync => sync::sync(&db),
         Command::BuildWitness {
             vapor_addr,
             amount,
@@ -48,7 +76,7 @@ fn main() -> anyhow::Result<()> {
     }
 }
 
-fn gen_vapor_address(recipient: &str) -> anyhow::Result<()> {
+fn gen_vapor_address(db: &redb::Database, recipient: &str) -> anyhow::Result<()> {
     let recipient: [u8; 32] = bs58::decode(recipient)
         .into_vec()?
         .try_into()
@@ -63,6 +91,47 @@ fn gen_vapor_address(recipient: &str) -> anyhow::Result<()> {
     println!("");
     println!("Spend secret: {}", secret.to_string());
 
+    let secret_bytes: [u8; 32] = secret.into_bigint().to_bytes_be().try_into().unwrap();
+    let record = VaporAddressRecord {
+        addr,
+        recipient,
+        secret: secret_bytes,
+        balance: None,
+    };
+
+    let write_txn = db.begin_write()?;
+    {
+        let mut table = write_txn.open_table(VAP_ADDR)?;
+
+        table.insert(&record.addr, &record)?;
+    }
+    write_txn.commit()?;
+
+    Ok(())
+}
+
+fn list(db: &redb::Database) -> anyhow::Result<()> {
+    let read_txn = db.begin_read()?;
+    {
+        let table = read_txn.open_table(VAP_ADDR)?;
+
+        for result in table.iter()? {
+            let (key, record) = result?;
+            let address = bs58::encode(key.value()).into_string();
+            let recipient = bs58::encode(record.value().recipient).into_string();
+            let secret = NoirField::from_be_bytes_mod_order(&record.value().secret).to_string();
+
+            println!("Vaporize Address: {}", address);
+            println!("  Recipient: {}", recipient);
+            println!("  Spend Secret: {}", secret);
+            if let Some(balance) = record.value().balance {
+                println!("  Balance: {}", balance);
+            } else {
+                println!("  Balance: <unknown>");
+            }
+            println!();
+        }
+    }
     Ok(())
 }
 

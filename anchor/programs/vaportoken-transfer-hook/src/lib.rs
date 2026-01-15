@@ -86,7 +86,7 @@ pub mod transfer_hook {
         // Emit a transfer log which will be used by the wallet to
         // reconstruct the merkle tree corresponding to the accumulator
         emit!(Transfer {
-            to: ctx.accounts.destination_token.key(),
+            to: ctx.accounts.destination_token.owner.key(),
             amount,
         });
 
