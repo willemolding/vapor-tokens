@@ -41,7 +41,7 @@ module.exports = async function (provider: anchor.AnchorProvider) {
     transferHookProgram.programId
   );
   const [treeAccount] = PublicKey.findProgramAddressSync(
-    [Buffer.from("merkle_tree")],
+    [Buffer.from("merkle_tree"), mint.publicKey.toBuffer()],
     transferHookProgram.programId
   );
 
@@ -71,6 +71,16 @@ module.exports = async function (provider: anchor.AnchorProvider) {
   await provider.sendAndConfirm(createMintTx, [mint]);
 
   await transferHookProgram.methods
+    .initialize()
+    .accountsStrict({
+      treeAccount,
+      mint: mint.publicKey,
+      authority: payer,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+
+  await transferHookProgram.methods
     .initializeExtraAccountMetaList()
     .accountsStrict({
       payer,
@@ -79,14 +89,7 @@ module.exports = async function (provider: anchor.AnchorProvider) {
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-
-  await transferHookProgram.methods.initialize().accountsStrict({
-    treeAccount,
-    authority: payer,
-    systemProgram: SystemProgram.programId,
-  }).rpc();
+    }).rpc();
 
   console.log("Mint:", mint.publicKey.toBase58());
   console.log("Mint authority PDA:", mintAuthority.toBase58());

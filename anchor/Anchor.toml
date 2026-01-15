@@ -9,11 +9,15 @@ skip-lint = false
 condenser = "FrcRj9b13DKzq2EoFqFXjmqqgamd1nsPjkhRCrT9Za8C"
 transfer_hook = "Cp58wswY9RJbycQSP5meuwAKGBWk44Lsza7npcXmDwRT"
 
+[programs.devnet]
+condenser = "FrcRj9b13DKzq2EoFqFXjmqqgamd1nsPjkhRCrT9Za8C"
+transfer_hook = "Cp58wswY9RJbycQSP5meuwAKGBWk44Lsza7npcXmDwRT"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
