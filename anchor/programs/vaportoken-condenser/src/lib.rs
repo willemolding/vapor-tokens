@@ -108,7 +108,7 @@ pub struct Condense<'info> {
 
     /// The tree account that is updated with every transfer of the token
     #[account(
-        seeds = [b"merkle_tree", mint.key().as_ref()],
+        seeds = [b"merkle_tree"/* , mint.key().as_ref()*/],
         seeds::program = vaportoken_transfer_hook::ID,
         bump = tree_account.load()?.bump
     )]

@@ -21,7 +21,6 @@ import {
   createMintToInstruction,
   createSetAuthorityInstruction,
   createTransferCheckedWithTransferHookInstruction,
-  createTransferCheckedInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
   getMintLen,
@@ -57,7 +56,7 @@ describe("vapor-tokens", () => {
       transferHookProgram.programId
     );
     const [treeAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from("merkle_tree"), mint.publicKey.toBuffer()],
+      [Buffer.from("merkle_tree")],
       transferHookProgram.programId
     );
 

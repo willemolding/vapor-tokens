@@ -227,8 +227,6 @@ module.exports = async function (provider: anchor.AnchorProvider) {
   );
   await provider.sendAndConfirm(new Transaction().add(mintToIx), []);
 
-  console.log("Mint:", mint.publicKey.toBase58());
-  console.log("Token-2022 program:", TOKEN_2022_PROGRAM_ID.toBase58());
   console.log("Mint (token address):", mint.publicKey.toBase58());
   console.log("Mint authority PDA:", mintAuthority.toBase58());
   console.log("Recipient owner:", recipientOwner.toBase58());

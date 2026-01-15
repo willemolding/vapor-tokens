@@ -115,7 +115,7 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = 8 + std::mem::size_of::<MerkleTreeAccount>(),
-        seeds = [b"merkle_tree", mint.key().as_ref()],
+        seeds = [b"merkle_tree"/*, mint.key().as_ref()*/],
         bump
     )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
@@ -156,7 +156,7 @@ impl<'info> InitializeExtraAccountMetaList<'info> {
                 Seed::Literal {
                     bytes: b"merkle_tree".to_vec(),
                 },
-                Seed::AccountKey { index: 1 },
+                // Seed::AccountKey { index: 1 },
             ],
             false, // is_signer
             true,  // is_writable
@@ -183,7 +183,7 @@ pub struct TransferHook<'info> {
 
     #[account(
         mut,
-        seeds = [b"merkle_tree", mint.key().as_ref()],
+        seeds = [b"merkle_tree"/* , mint.key().as_ref()*/],
         bump = tree_account.load()?.bump
     )]
     pub tree_account: AccountLoader<'info, MerkleTreeAccount>,
