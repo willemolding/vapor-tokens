@@ -17,7 +17,7 @@ transfer_hook = "E8a5MFnAPA92apKrYyTgE9x2e3U165GpRPfdTobauDmn"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
