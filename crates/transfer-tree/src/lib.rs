@@ -22,12 +22,22 @@ pub trait TransferTreeExt<const HEIGHT: usize> {
         proof: &mut BoundedVec<[u8; 32]>,
     ) -> Result<(usize, usize), ConcurrentMerkleTreeError>;
 
+    fn validate_transfer_proof(
+        &self,
+        destination: [u8; 32],
+        amount: u64,
+        index: usize,
+        proof: &BoundedVec<[u8; 32]>,
+    ) -> Result<(), ConcurrentMerkleTreeError>;
+
     fn proof_indices(&self, index: u64) -> [u8; HEIGHT];
 }
 
 impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
     fn new_empty() -> TransferTree<HEIGHT> {
-        TransferTree::<HEIGHT>::new(HEIGHT, 1, 1, 0).unwrap()
+        let mut tree = TransferTree::<HEIGHT>::new(HEIGHT, 2, 1, 0).unwrap();
+        tree.init().unwrap();
+        tree
     }
 
     fn append_transfer(
@@ -35,14 +45,7 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
         destination: [u8; 32],
         amount: u64,
     ) -> Result<(usize, usize), ConcurrentMerkleTreeError> {
-        let destination = pack_bytes(&destination)
-            .iter()
-            .map(|f| f.into_bigint().to_bytes_be())
-            .collect::<Vec<Vec<u8>>>();
-
-        let leaf =
-            Poseidon::hashv(&[&destination[0], &destination[1], &amount.to_be_bytes()]).unwrap();
-
+        let leaf = build_leaf(destination, amount);
         self.append(&leaf)
     }
 
@@ -52,15 +55,19 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
         amount: u64,
         proof: &mut BoundedVec<[u8; 32]>,
     ) -> Result<(usize, usize), ConcurrentMerkleTreeError> {
-        let destination = pack_bytes(&destination)
-            .iter()
-            .map(|f| f.into_bigint().to_bytes_be())
-            .collect::<Vec<Vec<u8>>>();
-
-        let leaf =
-            Poseidon::hashv(&[&destination[0], &destination[1], &amount.to_be_bytes()]).unwrap();
-
+        let leaf = build_leaf(destination, amount);
         self.append_with_proof(&leaf, proof)
+    }
+
+    fn validate_transfer_proof(
+        &self,
+        destination: [u8; 32],
+        amount: u64,
+        index: usize,
+        proof: &BoundedVec<[u8; 32]>,
+    ) -> Result<(), ConcurrentMerkleTreeError> {
+        let leaf = build_leaf(destination, amount);
+        self.validate_proof(&leaf, index, proof)
     }
 
     fn proof_indices(&self, index: u64) -> [u8; HEIGHT] {
@@ -74,6 +81,20 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
     }
 }
 
+fn build_leaf(destination: [u8; 32], amount: u64) -> [u8; 32] {
+    let destination_bytes = pack_bytes(&destination)
+        .iter()
+        .map(|f| f.into_bigint().to_bytes_be())
+        .collect::<Vec<Vec<u8>>>();
+
+    Poseidon::hashv(&[
+        &destination_bytes[0],
+        &destination_bytes[1],
+        &amount.to_be_bytes(),
+    ])
+    .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -81,8 +102,7 @@ mod tests {
 
     #[test]
     fn test_append_transfer() {
-        let mut tree = TransferTree::<26>::new(26, 100, 100, 0).unwrap();
-        tree.init().unwrap();
+        let mut tree = TransferTree::<26>::new_empty();
 
         let old_root = tree.root();
         println!("Old root: {:?}", old_root);

@@ -9,7 +9,7 @@ use redb::{ReadableDatabase, ReadableTable, TableDefinition};
 use transfer_tree::TransferTreeExt;
 use vaporize_addresses::generate_vaporize_address;
 
-use crate::{borsh_record::BorshRecord, sync::TransferEvent};
+use crate::borsh_record::BorshRecord;
 
 mod borsh_record;
 mod condense;
@@ -68,6 +68,12 @@ struct VaporAddressRecord {
     addr: [u8; 32],
     recipient: [u8; 32],
     secret: [u8; 32],
+}
+
+#[derive(Debug, BorshDeserialize, BorshSerialize, PartialEq)]
+pub struct TransferEvent {
+    pub to: [u8; 32],
+    pub amount: u64,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -129,7 +135,7 @@ fn list(db: &redb::Database) -> anyhow::Result<()> {
     let read_txn = db.begin_read()?;
     {
         let addresses = read_txn.open_table(VAP_ADDR)?;
-        let spends = read_txn.open_table(TRANSFERS)?;
+        let transfers = read_txn.open_table(TRANSFERS)?;
 
         for result in addresses.iter()? {
             let (key, record) = result?;
@@ -141,7 +147,7 @@ fn list(db: &redb::Database) -> anyhow::Result<()> {
             println!("  Recipient: {}", recipient);
             println!("  Spend Secret: {}", secret);
             println!("  Deposits:");
-            for result in spends.iter()? {
+            for result in transfers.iter()? {
                 let (slot_key, transfer) = result?;
                 if transfer.value().to == key.value() {
                     println!(
@@ -163,46 +169,46 @@ fn build_witness(
     recipient: &str,
     secret: &Option<String>,
 ) -> anyhow::Result<()> {
-    let (vapor_addr, secret) = if let (Some(vapor_addr), Some(secret)) = (vapor_addr, secret) {
-        (
-            bs58::decode(vapor_addr)
-                .into_vec()?
-                .try_into()
-                .expect("vapor_addr must be 32 bytes"),
-            NoirField::from_str(&secret).expect("vapor_addr must be 32 bytes"),
-        )
-    } else {
-        let mut rng = rand::thread_rng();
-        let recipient_bytes: [u8; 32] = bs58::decode(recipient)
-            .into_vec()?
-            .try_into()
-            .expect("recipient must be 32 bytes");
-        generate_vaporize_address(&mut rng, recipient_bytes)
-    };
+    // let (vapor_addr, secret) = if let (Some(vapor_addr), Some(secret)) = (vapor_addr, secret) {
+    //     (
+    //         bs58::decode(vapor_addr)
+    //             .into_vec()?
+    //             .try_into()
+    //             .expect("vapor_addr must be 32 bytes"),
+    //         NoirField::from_str(&secret).expect("vapor_addr must be 32 bytes"),
+    //     )
+    // } else {
+    //     let mut rng = rand::thread_rng();
+    //     let recipient_bytes: [u8; 32] = bs58::decode(recipient)
+    //         .into_vec()?
+    //         .try_into()
+    //         .expect("recipient must be 32 bytes");
+    //     generate_vaporize_address(&mut rng, recipient_bytes)
+    // };
 
-    let recipient: [u8; 32] = bs58::decode(recipient)
-        .into_vec()?
-        .try_into()
-        .expect("recipient must be 32 bytes");
+    // let recipient: [u8; 32] = bs58::decode(recipient)
+    //     .into_vec()?
+    //     .try_into()
+    //     .expect("recipient must be 32 bytes");
 
-    let mut tree = transfer_tree::TransferTree::<26>::new_empty();
-    let proof = tree.append_transfer(vapor_addr, amount);
-    let proof_indices = tree.proof_indices(0);
-    let root = tree.root();
+    // let mut tree = transfer_tree::TransferTree::<26>::new_empty();
+    // let proof = tree.append_transfer(vapor_addr, amount);
+    // let proof_indices = tree.proof_indices(0);
+    // let root = tree.root();
 
-    let witness = CondenserWitness::builder()
-        .recipient(recipient)
-        .amount(amount)
-        .merkle_root(root)
-        .merkle_proof(proof)
-        .merkle_proof_indices(proof_indices)
-        .vapor_addr(vapor_addr)
-        .secret(secret)
-        .build();
+    // let witness = CondenserWitness::builder()
+    //     .recipient(recipient)
+    //     .amount(amount)
+    //     .merkle_root(root)
+    //     .merkle_proof(proof)
+    //     .merkle_proof_indices(proof_indices)
+    //     .vapor_addr(vapor_addr)
+    //     .secret(secret)
+    //     .build();
 
-    println!("{}", witness.to_toml());
-    println!();
-    println!("Vapor address: {}", bs58::encode(vapor_addr).into_string());
-    println!("Recipient: {}", bs58::encode(recipient).into_string());
+    // println!("{}", witness.to_toml());
+    // println!();
+    // println!("Vapor address: {}", bs58::encode(vapor_addr).into_string());
+    // println!("Recipient: {}", bs58::encode(recipient).into_string());
     Ok(())
 }

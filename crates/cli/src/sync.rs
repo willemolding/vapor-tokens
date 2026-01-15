@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::STANDARD as Base64};
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
 use solana_client::{
     rpc_client::{GetConfirmedSignaturesForAddress2Config, RpcClient},
     rpc_config::{CommitmentConfig, RpcTransactionConfig},
@@ -9,13 +9,7 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
 use std::{str::FromStr, time::Duration};
 
-use crate::TRANSFERS;
-
-#[derive(Debug, BorshDeserialize, BorshSerialize, PartialEq)]
-pub struct TransferEvent {
-    pub to: [u8; 32],
-    pub amount: u64,
-}
+use crate::{TRANSFERS, TransferEvent};
 
 pub fn sync(db: &redb::Database, rpc_url: &str, mint: &str) -> anyhow::Result<()> {
     let client = RpcClient::new_with_timeout_and_commitment(
