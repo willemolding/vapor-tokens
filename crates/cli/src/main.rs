@@ -1,13 +1,18 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
+use crate::borsh_record::BorshRecord;
 use ark_bn254::Fr as NoirField;
 use ark_ff::{BigInteger, PrimeField};
 use borsh::{BorshDeserialize, BorshSerialize};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use redb::{ReadableDatabase, ReadableTable, TableDefinition};
+use solana_clap_v3_utils::keypair::signer_from_path;
+use solana_cli_config::Config;
+use solana_sdk::{
+    pubkey::Pubkey,
+    signature::{Keypair, read_keypair_file},
+};
 use vaporize_addresses::generate_vaporize_address;
-
-use crate::borsh_record::BorshRecord;
 
 mod borsh_record;
 mod condense;
@@ -24,31 +29,44 @@ const TRANSFERS: TableDefinition<u64, BorshRecord<TransferEvent>> =
     TableDefinition::new("transfers");
 
 #[derive(clap::Parser)]
-#[command(version, about, long_about = None)]
+#[clap(version, about, long_about = None)]
 struct Args {
-    #[command(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 
-    #[arg(long, env = "SOL_RPC", default_value = "https://api.devnet.solana.com")]
+    #[clap(long, env = "SOL_RPC", default_value = "https://api.devnet.solana.com")]
     rpc_url: String,
 
-    #[arg(long, env = "MINT")]
+    #[clap(long, env = "MINT")]
     mint: String,
 
-    #[arg(long, env = "WALLET_PATH", default_value = "wallet.redb")]
+    #[clap(long, env = "WALLET_PATH", default_value = "wallet.redb")]
     wallet_file: String,
 }
 
 #[derive(Clone, clap::Subcommand)]
 enum Command {
     GenAddress {
-        #[arg()]
+        #[clap()]
         recipient: String,
     },
     List,
     Condense {
-        #[arg()]
+        #[clap()]
         vapor_addr: String,
+    },
+    SendProof {
+        #[clap(long)]
+        keypair: String,
+
+        #[clap(long)]
+        recipient: String,
+
+        #[clap(long)]
+        proof_path: PathBuf,
+
+        #[clap(long)]
+        witness_path: PathBuf,
     },
 }
 
@@ -82,6 +100,22 @@ fn main() -> anyhow::Result<()> {
         Command::Condense { vapor_addr } => {
             sync::sync(&db, &args.rpc_url, &args.mint)?;
             condense::condense::<TREE_HEIGHT>(&db, &args.rpc_url, &args.mint, &vapor_addr)?;
+        }
+        Command::SendProof {
+            keypair,
+            recipient,
+            proof_path,
+            witness_path,
+        } => {
+            let signer = read_keypair_file(keypair).unwrap();
+            condense::send_proof(
+                &args.rpc_url,
+                signer,
+                Pubkey::from_str(&args.mint)?,
+                Pubkey::from_str(&recipient)?,
+                std::fs::read(&proof_path)?,
+                std::fs::read(&witness_path)?,
+            )?;
         }
     };
 

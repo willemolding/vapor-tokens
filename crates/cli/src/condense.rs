@@ -12,7 +12,6 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signer};
 use solana_sdk::transaction::Transaction;
 use transfer_tree::TransferTreeExt;
-use vaportoken_condenser::Condense;
 
 use crate::{TRANSFERS, VAP_ADDR};
 
@@ -83,9 +82,9 @@ pub fn condense<const HEIGHT: usize>(
     Ok(())
 }
 
-pub fn send_condense(
+pub fn send_proof(
     rpc_url: &str,
-    payer: &Keypair,
+    payer: Keypair,
     mint: Pubkey,
     recipient: Pubkey,
     proof_bytes: Vec<u8>,
@@ -99,8 +98,7 @@ pub fn send_condense(
 
     let (mint_authority, _) =
         Pubkey::find_program_address(&[b"mint_authority", mint.as_ref()], &condenser_program);
-    let (tree_account, _) =
-        Pubkey::find_program_address(&[b"merkle_tree", mint.as_ref()], &transfer_hook_program);
+    let (tree_account, _) = Pubkey::find_program_address(&[b"merkle_tree"], &transfer_hook_program);
     let (withdrawn, _) = Pubkey::find_program_address(
         &[b"withdrawn", mint.as_ref(), recipient.as_ref()],
         &condenser_program,

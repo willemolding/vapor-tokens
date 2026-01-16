@@ -11,7 +11,7 @@ vaporize-addresses = { path = "../../crates/vaporize-addresses" }
 ark-bn254 = "0.5.0"
 ark-ff = "0.5.0"
 rand = "0.8.5"
-clap = { version = "4.5.54", features = ["derive", "env"] }
+clap = { version = "3.2", features = ["derive", "env"] }
 anyhow = { version = "1.0.100" }
 bs58 = { version = "0.5.1" }
 qr2term = { version = "0.3" }
@@ -30,6 +30,8 @@ spl-token-2022 = "4.0.0"
 solana-program = "2.3.0"
 vaportoken-condenser = { path = "../../anchor/programs/vaportoken-condenser", features = ["no-entrypoint"] }
 vaportoken-transfer-hook = { path = "../../anchor/programs/vaportoken-transfer-hook", features = ["no-entrypoint"] }
+solana-cli-config = "3.1.6"
+solana-clap-v3-utils = "3.1.6"
 
 [dev-dependencies]
 tempfile = "3.24.0"
