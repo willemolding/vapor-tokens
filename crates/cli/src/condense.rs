@@ -6,11 +6,13 @@ use condenser_witness::CondenserWitness;
 use light_bounded_vec::BoundedVec;
 use redb::{ReadableDatabase, ReadableTable};
 use solana_client::rpc_client::RpcClient;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_program::system_program;
 use solana_sdk::instruction::{AccountMeta, Instruction};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signer};
 use solana_sdk::transaction::Transaction;
+use spl_associated_token_account::get_associated_token_address_with_program_id;
 use transfer_tree::TransferTreeExt;
 
 use crate::{TRANSFERS, VAP_ADDR};
@@ -98,7 +100,8 @@ pub fn send_proof(
 
     let (mint_authority, _) =
         Pubkey::find_program_address(&[b"mint_authority", mint.as_ref()], &condenser_program);
-    let (tree_account, _) = Pubkey::find_program_address(&[b"merkle_tree"], &transfer_hook_program);
+    let (tree_account, _) =
+        Pubkey::find_program_address(&[b"merkle_tree", mint.as_ref()], &transfer_hook_program);
     let (withdrawn, _) = Pubkey::find_program_address(
         &[b"withdrawn", mint.as_ref(), recipient.as_ref()],
         &condenser_program,
@@ -111,9 +114,15 @@ pub fn send_proof(
     }
     .data();
 
+    let recipient_ata = get_associated_token_address_with_program_id(
+        &recipient.to_bytes().into(),
+        &mint.to_bytes().into(),
+        &spl_token_2022::ID,
+    );
+
     let accounts = vec![
         AccountMeta::new(mint, false),
-        AccountMeta::new(recipient, false),
+        AccountMeta::new(recipient_ata.to_bytes().into(), false),
         AccountMeta::new_readonly(mint_authority, false),
         AccountMeta::new_readonly(token_program, false),
         AccountMeta::new_readonly(tree_account, false),
@@ -130,7 +139,10 @@ pub fn send_proof(
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
-        &[instruction],
+        &[
+            ComputeBudgetInstruction::set_compute_unit_limit(1_000_000),
+            instruction,
+        ],
         Some(&payer.pubkey()),
         &[payer],
         recent_blockhash,
