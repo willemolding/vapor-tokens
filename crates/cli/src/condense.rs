@@ -1,12 +1,27 @@
 use std::str::FromStr;
 
+use anchor_lang::{Discriminator, InstructionData};
 use ark_bn254::Fr as NoirField;
 use condenser_witness::CondenserWitness;
 use light_bounded_vec::BoundedVec;
 use redb::{ReadableDatabase, ReadableTable};
+use solana_client::rpc_client::RpcClient;
+use solana_program::system_program;
+use solana_sdk::instruction::{AccountMeta, Instruction};
+use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature::{Keypair, Signer};
+use solana_sdk::transaction::Transaction;
 use transfer_tree::TransferTreeExt;
+use vaportoken_condenser::Condense;
 
 use crate::{TRANSFERS, VAP_ADDR};
+
+#[derive(borsh::BorshSerialize)]
+struct CondenseArgs {
+    recipient: [u8; 32],
+    proof_bytes: Vec<u8>,
+    pub_witness_bytes: Vec<u8>,
+}
 
 pub fn condense<const HEIGHT: usize>(
     db: &redb::Database,
@@ -64,6 +79,65 @@ pub fn condense<const HEIGHT: usize>(
         proof_indices,
         root,
     )?;
+
+    Ok(())
+}
+
+pub fn send_condense(
+    rpc_url: &str,
+    payer: &Keypair,
+    mint: Pubkey,
+    recipient: Pubkey,
+    proof_bytes: Vec<u8>,
+    pub_witness_bytes: Vec<u8>,
+) -> anyhow::Result<()> {
+    let client = RpcClient::new(rpc_url.to_string());
+
+    let token_program = Pubkey::new_from_array(spl_token_2022::ID.to_bytes());
+    let condenser_program = Pubkey::new_from_array(vaportoken_condenser::ID.to_bytes());
+    let transfer_hook_program = Pubkey::new_from_array(vaportoken_transfer_hook::ID.to_bytes());
+
+    let (mint_authority, _) =
+        Pubkey::find_program_address(&[b"mint_authority", mint.as_ref()], &condenser_program);
+    let (tree_account, _) =
+        Pubkey::find_program_address(&[b"merkle_tree", mint.as_ref()], &transfer_hook_program);
+    let (withdrawn, _) = Pubkey::find_program_address(
+        &[b"withdrawn", mint.as_ref(), recipient.as_ref()],
+        &condenser_program,
+    );
+
+    let data = vaportoken_condenser::instruction::Condense {
+        recipient: recipient.to_bytes().into(),
+        proof_bytes,
+        pub_witness_bytes,
+    }
+    .data();
+
+    let accounts = vec![
+        AccountMeta::new(mint, false),
+        AccountMeta::new(recipient, false),
+        AccountMeta::new_readonly(mint_authority, false),
+        AccountMeta::new_readonly(token_program, false),
+        AccountMeta::new_readonly(tree_account, false),
+        AccountMeta::new(withdrawn, false),
+        AccountMeta::new(payer.pubkey(), true),
+        AccountMeta::new_readonly(system_program::ID.to_bytes().into(), false),
+    ];
+
+    let instruction = Instruction {
+        program_id: condenser_program,
+        accounts,
+        data,
+    };
+
+    let recent_blockhash = client.get_latest_blockhash()?;
+    let tx = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&payer.pubkey()),
+        &[payer],
+        recent_blockhash,
+    );
+    client.send_and_confirm_transaction(&tx)?;
 
     Ok(())
 }

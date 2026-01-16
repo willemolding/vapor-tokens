@@ -25,6 +25,11 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 light-bounded-vec = "2.0.1"
 hex = "0.4.3"
+anchor-lang = "0.32.1"
+spl-token-2022 = "4.0.0"
+solana-program = "2.3.0"
+vaportoken-condenser = { path = "../../anchor/programs/vaportoken-condenser", features = ["no-entrypoint"] }
+vaportoken-transfer-hook = { path = "../../anchor/programs/vaportoken-transfer-hook", features = ["no-entrypoint"] }
 
 [dev-dependencies]
 tempfile = "3.24.0"
