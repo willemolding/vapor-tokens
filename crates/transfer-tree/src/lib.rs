@@ -30,7 +30,7 @@ pub trait TransferTreeExt<const HEIGHT: usize> {
         proof: &BoundedVec<[u8; 32]>,
     ) -> Result<(), ConcurrentMerkleTreeError>;
 
-    fn proof_indices(&self, index: u64) -> [u8; HEIGHT];
+    fn proof_indices(&self, index: usize) -> [u8; HEIGHT];
 }
 
 impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
@@ -70,7 +70,7 @@ impl<const HEIGHT: usize> TransferTreeExt<HEIGHT> for TransferTree<HEIGHT> {
         self.validate_proof(&leaf, index, proof)
     }
 
-    fn proof_indices(&self, index: u64) -> [u8; HEIGHT] {
+    fn proof_indices(&self, index: usize) -> [u8; HEIGHT] {
         let mut indices = [0u8; HEIGHT];
         let mut idx = index;
         for i in 0..HEIGHT {
