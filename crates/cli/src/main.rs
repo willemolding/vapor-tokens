@@ -16,6 +16,7 @@ use vaporize_addresses::generate_vaporize_address;
 
 mod borsh_record;
 mod condense;
+mod prove;
 mod sync;
 
 const TREE_HEIGHT: usize = 26;
@@ -52,21 +53,11 @@ enum Command {
     },
     List,
     Condense {
-        #[clap()]
-        vapor_addr: String,
-    },
-    SendProof {
         #[clap(long)]
         keypair: String,
 
-        #[clap(long)]
-        recipient: String,
-
-        #[clap(long)]
-        proof_path: PathBuf,
-
-        #[clap(long)]
-        witness_path: PathBuf,
+        #[clap()]
+        vapor_addr: String,
     },
 }
 
@@ -97,24 +88,18 @@ fn main() -> anyhow::Result<()> {
             sync::sync(&db, &args.rpc_url, &args.mint)?;
             list(&db)?;
         }
-        Command::Condense { vapor_addr } => {
-            sync::sync(&db, &args.rpc_url, &args.mint)?;
-            condense::condense::<TREE_HEIGHT>(&db, &args.rpc_url, &args.mint, &vapor_addr)?;
-        }
-        Command::SendProof {
+        Command::Condense {
+            vapor_addr,
             keypair,
-            recipient,
-            proof_path,
-            witness_path,
         } => {
             let signer = read_keypair_file(keypair).unwrap();
-            condense::send_proof(
+            sync::sync(&db, &args.rpc_url, &args.mint)?;
+            condense::condense::<TREE_HEIGHT>(
+                &db,
                 &args.rpc_url,
                 signer,
                 Pubkey::from_str(&args.mint)?,
-                Pubkey::from_str(&recipient)?,
-                std::fs::read(&proof_path)?,
-                std::fs::read(&witness_path)?,
+                &vapor_addr,
             )?;
         }
     };

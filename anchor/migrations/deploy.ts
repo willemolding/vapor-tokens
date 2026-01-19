@@ -7,6 +7,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  AuthorityType,
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
@@ -14,6 +15,7 @@ import {
   createInitializeMintInstruction,
   createInitializeTransferHookInstruction,
   createMintToInstruction,
+  createSetAuthorityInstruction,
   getAssociatedTokenAddressSync,
   getMint,
   getMintLen,
@@ -226,6 +228,16 @@ module.exports = async function (provider: anchor.AnchorProvider) {
     TOKEN_2022_PROGRAM_ID
   );
   await provider.sendAndConfirm(new Transaction().add(mintToIx), []);
+
+  const setAuthorityIx = createSetAuthorityInstruction(
+    mint.publicKey,
+    payer,
+    AuthorityType.MintTokens,
+    mintAuthority,
+    [],
+    TOKEN_2022_PROGRAM_ID
+  );
+  await provider.sendAndConfirm(new Transaction().add(setAuthorityIx), []);
 
   console.log("Mint (token address):", mint.publicKey.toBase58());
   console.log("Mint authority PDA:", mintAuthority.toBase58());

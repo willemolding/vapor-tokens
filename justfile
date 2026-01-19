@@ -16,3 +16,6 @@ gnark_prove: execute
 
 build_verifier_program:
     cargo xtask codegen
+
+build_docker:
+    docker build --platform linux/amd64 -t vapor-prover:latest -f ./docker/prover.Dockerfile .

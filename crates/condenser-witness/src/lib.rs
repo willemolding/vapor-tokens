@@ -4,6 +4,7 @@ use utils::pack_bytes;
 
 use bon::bon;
 
+#[derive(Clone, Debug)]
 pub struct CondenserWitness<const HEIGHT: usize> {
     pub recipient: [NoirField; 2],
     pub amount: NoirField,

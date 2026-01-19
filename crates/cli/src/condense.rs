@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use anchor_lang::{Discriminator, InstructionData};
+use anchor_lang::InstructionData;
 use ark_bn254::Fr as NoirField;
+use borsh::BorshDeserialize;
 use condenser_witness::CondenserWitness;
 use light_bounded_vec::BoundedVec;
 use redb::{ReadableDatabase, ReadableTable};
@@ -15,19 +16,13 @@ use solana_sdk::transaction::Transaction;
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 use transfer_tree::TransferTreeExt;
 
-use crate::{TRANSFERS, VAP_ADDR};
-
-#[derive(borsh::BorshSerialize)]
-struct CondenseArgs {
-    recipient: [u8; 32],
-    proof_bytes: Vec<u8>,
-    pub_witness_bytes: Vec<u8>,
-}
+use crate::{TRANSFERS, VAP_ADDR, prove::prove};
 
 pub fn condense<const HEIGHT: usize>(
     db: &redb::Database,
     rpc_url: &str,
-    mint: &str,
+    payer: Keypair,
+    mint: Pubkey,
     vapor_addr: &str,
 ) -> anyhow::Result<()> {
     let vapor_addr: [u8; 32] = bs58::decode(vapor_addr)
@@ -70,8 +65,8 @@ pub fn condense<const HEIGHT: usize>(
 
     let deposit = &deposits[selection];
 
-    let (proof, proof_indices, root) = build_proof::<HEIGHT>(db, deposits[selection].0)?;
-    build_witness(
+    let (proof, proof_indices, root) = build_merkle_proof::<HEIGHT>(db, deposits[selection].0)?;
+    let (proof, witness) = build_witness_and_prove(
         vapor_addr,
         deposit.1.amount,
         bs58::encode(addr_record.recipient).into_string().as_str(),
@@ -81,10 +76,19 @@ pub fn condense<const HEIGHT: usize>(
         root,
     )?;
 
+    submit_proof(
+        rpc_url,
+        payer,
+        mint,
+        Pubkey::try_from_slice(&addr_record.recipient)?,
+        proof,
+        witness,
+    )?;
+
     Ok(())
 }
 
-pub fn send_proof(
+fn submit_proof(
     rpc_url: &str,
     payer: Keypair,
     mint: Pubkey,
@@ -147,14 +151,19 @@ pub fn send_proof(
         &[payer],
         recent_blockhash,
     );
-    client.send_and_confirm_transaction(&tx)?;
+    let sig = client.send_and_confirm_transaction(&tx)?;
+
+    println!(
+        "View transaction https://solscan.io/tx/{}?cluster=devnet",
+        sig
+    );
 
     Ok(())
 }
 
 /// Build the Merkle proof for the transfer at the given index
 /// using transfers from the db
-fn build_proof<const HEIGHT: usize>(
+fn build_merkle_proof<const HEIGHT: usize>(
     db: &redb::Database,
     index: usize,
 ) -> anyhow::Result<([[u8; 32]; HEIGHT], [u8; HEIGHT], [u8; 32])> {
@@ -205,7 +214,7 @@ fn build_proof<const HEIGHT: usize>(
     ))
 }
 
-fn build_witness<const HEIGHT: usize>(
+fn build_witness_and_prove<const HEIGHT: usize>(
     vapor_addr: [u8; 32],
     amount: u64,
     recipient: &str,
@@ -213,7 +222,7 @@ fn build_witness<const HEIGHT: usize>(
     proof: [[u8; 32]; HEIGHT],
     proof_indices: [u8; HEIGHT],
     root: [u8; 32],
-) -> anyhow::Result<()> {
+) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
     let secret = NoirField::from_str(&secret).expect("vapor_addr must be 32 bytes");
 
     let recipient: [u8; 32] = bs58::decode(recipient)
@@ -231,11 +240,7 @@ fn build_witness<const HEIGHT: usize>(
         .secret(secret)
         .build();
 
-    println!("{}", witness.to_toml());
-    println!();
-    println!("Vapor address: {}", bs58::encode(vapor_addr).into_string());
-    println!("Recipient: {}", bs58::encode(recipient).into_string());
-    Ok(())
+    prove::<HEIGHT>(witness.clone())
 }
 
 #[cfg(test)]
@@ -262,7 +267,7 @@ mod tests {
         }
         write_txn.commit().unwrap();
 
-        let (proof, _indices, _root) = build_proof::<HEIGHT>(&db, 5).unwrap();
+        let (proof, _indices, _root) = build_merkle_proof::<HEIGHT>(&db, 5).unwrap();
         assert_eq!(proof.len(), HEIGHT);
     }
 
@@ -285,7 +290,7 @@ mod tests {
         }
         write_txn.commit().unwrap();
 
-        let (proof, _indices, root) = build_proof::<HEIGHT>(&db, 0).unwrap();
+        let (proof, _indices, root) = build_merkle_proof::<HEIGHT>(&db, 0).unwrap();
         assert_eq!(proof.len(), HEIGHT);
         println!("Root: {:?}", hex::encode(root));
     }
