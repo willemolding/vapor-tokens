@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "cli-wallet"
 version = "0.1.0"
 edition = "2024"
 
@@ -32,9 +32,10 @@ spl-associated-token-account = "4.0.0"
 vaportoken-condenser = { path = "../../anchor/programs/vaportoken-condenser", features = ["no-entrypoint"] }
 vaportoken-transfer-hook = { path = "../../anchor/programs/vaportoken-transfer-hook", features = ["no-entrypoint"] }
 solana-cli-config = "3.1.6"
-solana-clap-v3-utils = "3.1.6"
 solana-compute-budget = "3.1.6"
 solana-compute-budget-interface = "3.0.0"
+solana-sdk-ids = "3.1.0"
+shellexpand = "3.1.1"
 
 [dev-dependencies]
 tempfile = "3.24.0"
