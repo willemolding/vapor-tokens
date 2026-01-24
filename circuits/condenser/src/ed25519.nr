@@ -44,6 +44,10 @@ pub fn decompress_y(pk_bytes: [u8; 32]) -> Fq {
     Fq::from_le_bytes(y_bytes)
 }
 
+pub fn ed25519_fq_from_noir_field(x: Field) -> Fq {
+    Fq::from_le_bytes(x.to_le_bytes())
+}
+
 // Extended Edwards coordinates (X:Y:Z:T)
 struct ExtPoint {
     X: Fq,
