@@ -1,18 +1,23 @@
-# Vapor Tokens
+# <img src="./docs/VapourBold.png" width="50"> Vapor Tokens <img src="./docs/VapourBold.png" width="50">
+
 
 Vapor Tokens are a token-2022 compatible extension for unlinklable private transactions with plausible deniability. Inspired by [zERC20](https://medium.com/@intmax/zerc20-privacy-user-experience-7b7431f5b7b0) and [zkWormholes](https://eips.ethereum.org/EIPS/eip-7503).
 
-Unlike confidential transfers which hide only the amount being transferred, vapor tokens break the link between sender and receiver like Tornado Cash or Private Cash. Unlike those protocols, Vapor Tokens make it impossible for an observer to tell the difference between a regular transfer and a private transfer (plausible deniability).
+Unlike confidential transfers which hide only the amount being transferred, vapor tokens break the link between sender and receiver like Tornado Cash or Private Cash. Unlike those protocols, Vapor Tokens make it impossible for the depositor or an observer to tell the difference between a regular transfer and a private transfer (plausible deniability).
 
 As a token-2022 extension they maintain compatibility with existing wallet and exchange infrastructure giving you "privacy where you are".
 
 Use cases:
 
 - Withdraw directly from an exchange into a vapor address and then privately *condense* these funds to your cold wallet. The exchange cannot link your withdrawal to the cold wallet address.
-- As a point-of-sale, create a unique payment address for each customer. They can never learn anything about the finances of the shop.
+- As a point-of-sale, create a unique payment address for each customer transaction. They can never learn anything about the finances of the shop.
 - Integrate with existing DeFi protocols and pools that support Token-2022
 
+> For instructions for building and running the code see [USAGE.md](./docs/USAGE.md)
+
 ## How it works
+
+![](./docs/flow.excalidraw.svg)
 
 ### Vapor Addresses
 
@@ -26,13 +31,14 @@ A Vapor address that meets these requirements is generated using a type of hash-
 
 ```js
 r = random()
-x = poseidon(destination || r)
+n = next_nonce()
+x = poseidon(destination || n || r)
 y = ed25519_y_from_x(x) // y = sqrt((1 - a*x^2) / (1 - d*x^2))
 P = (x, y)
 addr = edwardsCompressed(P)
 ```
 
-where `r` is the secret value, `destination` is the true destination we want to secretly encode in this vapor address.
+where `r` is the secret value, `destination` is the true destination we want to secretly encode in this vapor address, and `n` is a nonce that should be used only once per destination address.
 
 When computing `y` it is possible that there is no solution. If that is the case just pick another `r` and try again. On average this should only require 2 attempts to find a valid curve point.
 
@@ -40,7 +46,7 @@ Any tokens transferred to this address (or its derived ATAs) will be unspendable
 
 ### Transfer Tree
 
-Every time a Vapor Token is transferred the amount and destination is recorded to a merkle tree onchain. Having an on-chain accumulator of transactions allows the ZK proofs to cheaply prove historical transfers.
+Every time a Vapor Token is transferred a [*transfer hook*](https://solana.com/developers/guides/token-extensions/transfer-hook) records the amount and destination to a merkle tree onchain. Having an on-chain accumulator of transactions allows the ZK proofs to cheaply prove historical transfers.
 
 ### ZK Proof-of-burn
 
@@ -55,15 +61,15 @@ In the `condenser` Noir circuit we prove exactly that. Proving the address is un
 
 ### Double Spend Prevention
 
-Instead of using nullifiers to prevent double spends we use another approach borrowed from zERC20. This stores on-chain the total amount withdrawn per recipient address. This is slightly more useful than a binary nullifier as it allows using recursive proofs to wrap up a number of deposits and mint them in a single condense transaction, without revealing how many deposits are being consumed. Each new withdrawal is for the sum of all total deposits (already minted and otherwise) but the contract will only mint the difference.
+Instead of using nullifiers to prevent double spends we use another approach borrowed from zERC20. This stores on-chain the total amount withdrawn per (recipient address, nonce). This is more useful than a binary nullifier as it allows using recursive proofs to wrap up a number of deposits and mint them in a single condense transaction, without revealing how many deposits are being consumed. Each new withdrawal is for the sum of all total deposits (already minted and otherwise) but the contract will only mint the difference.
 
-Unfortunately due to limitations of Sunspot we were not able to develop the recursive proofs for this application, although they are certainly possible.
+Unfortunately due to limitations of Sunspot we were not able to develop the recursive proofs for this application, although they are certainly possible. This means that each vapor address should only be used once. A new address that accepts deposits to the same destination can be generated by incrementing the nonce.
 
 ## How Its Built
 
 ### Solana Programs
 
-A vapor token extends token-2022 with two programs. One is a [*transfer hook*](https://solana.com/developers/guides/token-extensions/transfer-hook) which is called on every transaction. This is what ensures that no token transfer can be made without a record of it being added to the tree. Transfer hooks are supported by most modern Solana wallets. The code for this can be found [here](./anchor/programs/vaportoken-transfer-hook/)
+A vapor token extends token-2022 with two programs. One is a [*transfer hook*](./anchor/programs/vaportoken-transfer-hook/) which is called on every transaction. This is what ensures that no token transfer can be made without a record of it being added to the tree. Transfer hooks are supported by most modern Solana wallets.
 
 This is where vapor tokens differ from zERC20 by taking advantage of some unique properties of Solana. zERC20 uses a hash accumulator on-chain and proves equivalence to a merkle tree using an IVC. On Solana thanks to the Poseidon syscall and cheap execution it is possible to insert into the Merkle tree directly on-chain. This allows the protocol to be implemented with just a single proof and no IVC.
 
@@ -77,9 +83,20 @@ Noir conveniently has support for the ed25519 base field in the bignum library. 
 
 The other piece is verifying the poseidon merkle proof. This was reimplemented based on an implementation from zk-kit.noir. The existing implementation was not designed for fixed depth trees and we were able to get some efficiency improvements by fixing the depth. This is implemented in [merkle.nr](./circuits/condenser/src/merkle.nr).
 
+### Crates
+
+```
+crates
+├── cli-wallet - Generate vapor addresses, list balances, and condense from the command line
+├── condenser-witness - Build the inputs for the Noir proof
+├── transfer-tree - Locally reconstruct a transfer tree and build inclusion proofs
+├── vaporize-addresses - Utilities for generating valid Vapor addresses
+└── xtask - cargo xtask for building the verifier program using Sunspot
+```
+
 ### CLI Wallet
 
-Regular transfers and private deposits of vapor tokens can be handled by regular wallets (without the wallet or the users even knowing it!). A special wallet is only required to condense vaporized tokens to their final destination. This is handled by the CLI wallet. This can:
+Regular transfers and private deposits of vapor tokens can be handled by regular wallets (without the wallet or the depositor even knowing it). A special wallet is only required to condense vaporized tokens to their final destination. This is handled by the CLI wallet. This can:
 
 - Generate new vapor addresses (for which it stores the address and secret)
 - List the vapor addresses in the wallet along with any funds received
@@ -99,13 +116,13 @@ Looking further forward is no reason that this be combined with the [Solana conf
 
 ### Single address use
 
-Currently each generated Vapor address can only effectively be used once. They can technically be used more than once but you are only able to withdraw the largest deposit. This can also be fixed using recursive proofs to support multi-deposit withdrawals.
+Currently each generated Vapor address can only effectively be used once. They can technically be used more than once however you are only able to withdraw value equal to the largest deposit. This can also be fixed using recursive proofs to support multi-deposit withdrawals.
 
 ---
 
 ## Future Development
 
-This project presents a very viable protocol for building plausibly deniably unlinkability directly into tokens on Solana. For a mainnet launch the following remains outstanding:
+This project presents a viable protocol for building plausibly deniable unlinkability directly into tokens on Solana. For a mainnet launch the following remains outstanding:
 
 - [ ] Audits for Solana program and Noir code
 - [ ] Trusted setup for Gnark circuit
@@ -114,9 +131,9 @@ This project presents a very viable protocol for building plausibly deniably unl
 
 > Note the trusted setup would only need to be done once for all tokens, not per token.
 
-My dream goals are:
+Future feature goals are:
 
 - Combining vapor tokens with confidential transfers to give both unlinkability and amount confidentiality if confidentially is added to most common wallets. This would make this the most complete privacy token standard for Solana. 
 - Collaborating with a Solana stablecoin provider to issue a USD stablecoin directly as a vapor token.
 - Cross-chain support
-    - Given a trusted cross-chain channel to sync transfers tree roots there is no reason that the burn and the condense actions have to occur on the same chain! THis would be a powerful way to design private cross-chain transfers.
+    - Given a trusted cross-chain channel to sync transfers tree roots there is no reason that the burn and the condense actions have to occur on the same chain! This would be a powerful way to build private cross-chain stablecoin transfers.

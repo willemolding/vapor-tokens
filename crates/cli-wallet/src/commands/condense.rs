@@ -71,6 +71,7 @@ pub fn condense<const HEIGHT: usize>(
         deposit.1.amount,
         bs58::encode(addr_record.recipient).into_string().as_str(),
         &addr_record.secret,
+        &addr_record.nonce,
         proof,
         proof_indices,
         root,
@@ -81,6 +82,7 @@ pub fn condense<const HEIGHT: usize>(
         payer,
         mint,
         Pubkey::try_from_slice(&addr_record.recipient)?,
+        addr_record.nonce.parse().unwrap(),
         proof,
         witness,
     )?;
@@ -93,6 +95,7 @@ fn submit_proof(
     payer: Keypair,
     mint: Pubkey,
     recipient: Pubkey,
+    nonce: u64,
     proof_bytes: Vec<u8>,
     pub_witness_bytes: Vec<u8>,
 ) -> anyhow::Result<()> {
@@ -115,6 +118,7 @@ fn submit_proof(
         recipient: recipient.to_bytes().into(),
         proof_bytes,
         pub_witness_bytes,
+        _nonce: nonce,
     }
     .data();
 
@@ -167,11 +171,13 @@ fn build_witness_and_prove<const HEIGHT: usize>(
     amount: u64,
     recipient: &str,
     secret: &str,
+    nonce: &str,
     proof: [[u8; 32]; HEIGHT],
     proof_indices: [u8; HEIGHT],
     root: [u8; 32],
 ) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
-    let secret = NoirField::from_str(&secret).expect("vapor_addr must be 32 bytes");
+    let secret = NoirField::from_str(&secret).expect("Invalid secret");
+    let nonce = NoirField::from_str(&nonce).expect("Invalid nonce");
 
     let recipient: [u8; 32] = bs58::decode(recipient)
         .into_vec()?
@@ -186,6 +192,7 @@ fn build_witness_and_prove<const HEIGHT: usize>(
         .merkle_proof_indices(proof_indices)
         .vapor_addr(vapor_addr)
         .secret(secret)
+        .nonce(nonce)
         .build();
 
     prove::<HEIGHT>(witness.clone())

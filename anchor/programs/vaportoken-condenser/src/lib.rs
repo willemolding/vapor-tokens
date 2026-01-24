@@ -17,6 +17,7 @@ pub mod condenser {
     pub fn condense(
         ctx: Context<Condense>,
         recipient: Pubkey,
+        _nonce: u64,
         proof_bytes: Vec<u8>,
         pub_witness_bytes: Vec<u8>,
     ) -> Result<()> {
@@ -84,7 +85,7 @@ pub mod condenser {
 }
 
 #[derive(Accounts)]
-#[instruction(recipient: Pubkey)]
+#[instruction(recipient: Pubkey, nonce: u64)]
 pub struct Condense<'info> {
     /// The Token-2022 mint
     #[account(mut)]
@@ -120,7 +121,7 @@ pub struct Condense<'info> {
         init_if_needed,
         payer = payer,
         space = 8 + 64,
-        seeds = [b"withdrawn", mint.key().as_ref(), recipient.as_ref()],
+        seeds = [b"withdrawn", mint.key().as_ref(), recipient.as_ref(), &nonce.to_be_bytes()],
         bump
     )]
     pub withdrawn: Account<'info, WithdrawnTracker>,

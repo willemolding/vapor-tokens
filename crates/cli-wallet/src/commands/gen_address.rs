@@ -1,3 +1,5 @@
+use ark_bn254::Fr as NoirField;
+use rand::RngCore;
 use vaporize_addresses::generate_vaporize_address;
 
 use crate::{VAP_ADDR, VaporAddressRecord};
@@ -9,7 +11,8 @@ pub(crate) fn gen_vapor_address(db: &redb::Database, recipient: &str) -> anyhow:
         .expect("recipient must be 32 bytes");
 
     let mut rng = rand::thread_rng();
-    let (addr, secret) = generate_vaporize_address(&mut rng, recipient);
+    let nonce = rng.next_u64();
+    let (addr, secret) = generate_vaporize_address(&mut rng, recipient, nonce);
     let address = bs58::encode(addr).into_string();
 
     println!("Generated vaporize address: {}", address);
@@ -21,6 +24,7 @@ pub(crate) fn gen_vapor_address(db: &redb::Database, recipient: &str) -> anyhow:
         addr,
         recipient,
         secret: secret.to_string(),
+        nonce: NoirField::from(nonce).to_string(),
     };
 
     let write_txn = db.begin_write()?;

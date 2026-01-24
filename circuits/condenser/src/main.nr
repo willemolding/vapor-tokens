@@ -1,5 +1,5 @@
 use dep::bignum::BigNum;
-use dep::poseidon::poseidon::bn254::{hash_3};
+use dep::poseidon::poseidon::bn254::{hash_4, hash_3};
 use ed25519::{assert_is_in_subgroup, assert_is_on_curve, decompress_y, ed25519_fq_from_noir_field};
 use nodash::pack_bytes;
 
@@ -15,13 +15,14 @@ fn main(
     recipient: pub [Field; 2],
     amount: pub Field,
     merkle_root: pub Field,
+    nonce: pub Field,
     vapor_addr: [u8; 32],
     merkle_proof: [Field; TREE_HEIGHT],
     merkle_proof_indices: [u1; TREE_HEIGHT],
     secret: Field
 ) {
     assert_valid_merkle_proof(vapor_addr, amount, merkle_root, merkle_proof, merkle_proof_indices);
-    assert_is_valid_vapor_address(vapor_addr, recipient, secret);
+    assert_is_valid_vapor_address(vapor_addr, recipient, nonce, secret);
 }
 
 /// Asserts that the given Merkle proof is valid for the given leaf and root
@@ -44,9 +45,9 @@ fn assert_valid_merkle_proof(
 }
 
 /// Asserts that the given vapor address was generated correctly and lies on the Ed25519 curve in the correct subgroup
-fn assert_is_valid_vapor_address(vapor_addr: [u8; 32], recipient: [Field; 2], secret: Field) {
+fn assert_is_valid_vapor_address(vapor_addr: [u8; 32], recipient: [Field; 2], nonce: Field, secret: Field) {
     // x is derived from poseidon( recipient || secret )
-    let x = ed25519_fq_from_noir_field(hash_3([recipient[0], recipient[1], secret]));
+    let x = ed25519_fq_from_noir_field(hash_4([recipient[0], recipient[1], nonce, secret]));
     let y = decompress_y(vapor_addr);
 
     y.validate_in_field();

@@ -73,6 +73,7 @@ struct VaporAddressRecord {
     addr: [u8; 32],
     recipient: [u8; 32],
     secret: String,
+    nonce: String,
 }
 
 #[derive(Debug, BorshDeserialize, BorshSerialize, PartialEq)]

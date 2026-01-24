@@ -13,6 +13,7 @@ pub struct CondenserWitness<const HEIGHT: usize> {
     pub merkle_proof: [NoirField; HEIGHT],
     pub merkle_proof_indices: [u8; HEIGHT],
     pub secret: NoirField,
+    pub nonce: NoirField,
 }
 
 #[bon]
@@ -26,6 +27,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
         merkle_proof: [[u8; 32]; HEIGHT],
         merkle_proof_indices: [u8; HEIGHT],
         secret: NoirField,
+        nonce: NoirField,
     ) -> Self {
         Self {
             recipient: pack_bytes(&recipient)
@@ -37,6 +39,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
             merkle_proof: merkle_proof.map(|node| NoirField::from_be_bytes_mod_order(&node)),
             merkle_proof_indices,
             secret,
+            nonce,
         }
     }
 
@@ -50,6 +53,7 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
                 .map(|b| b.to_string())
                 .collect::<Vec<_>>()
         ));
+
         toml_str.push_str(&format!("amount = \"{}\"\n", self.amount));
 
         toml_str.push_str(&format!(
@@ -83,6 +87,8 @@ impl<const HEIGHT: usize> CondenserWitness<HEIGHT> {
 
         toml_str.push_str(&format!("secret = {:?}\n", self.secret.to_string()));
 
+        toml_str.push_str(&format!("nonce = {:?}\n", self.nonce.to_string()));
+
         toml_str
     }
 }
@@ -100,6 +106,7 @@ mod tests {
             merkle_proof: [NoirField::from(0u64); 26],
             merkle_proof_indices: [0u8; 26],
             secret: NoirField::from(4u64),
+            nonce: NoirField::from(5u64),
         };
         let toml_output = witness.to_toml();
         println!("{}", toml_output);

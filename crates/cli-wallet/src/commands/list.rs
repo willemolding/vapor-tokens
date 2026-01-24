@@ -13,9 +13,11 @@ pub(crate) fn list(db: &redb::Database) -> anyhow::Result<()> {
             let address = bs58::encode(key.value()).into_string();
             let recipient = bs58::encode(record.value().recipient).into_string();
             let secret = record.value().secret;
+            let nonce = record.value().nonce;
 
             println!("Vaporize Address: {}", address);
             println!("  Recipient: {}", recipient);
+            println!("  Nonce: {}", nonce);
             println!("  Secret: {}", secret);
             println!("  Deposits:");
             for result in transfers.iter()? {

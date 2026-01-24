@@ -12,6 +12,7 @@ use utils::pack_bytes;
 pub fn generate_vaporize_address<R: rand::RngCore>(
     rng: &mut R,
     recipient: [u8; 32],
+    nonce: u64,
 ) -> ([u8; 32], NoirField) {
     let recipient = pack_bytes(&recipient);
 
@@ -19,7 +20,7 @@ pub fn generate_vaporize_address<R: rand::RngCore>(
     // This should take on average 2 tries
     let (p, r) = loop {
         let r = NoirField::rand(rng);
-        let x = hash_3(recipient[0], recipient[1], r);
+        let x = hash_4(recipient[0], recipient[1], r, NoirField::from(nonce));
         if let Some(p) = ed25519_point_from_x(rng, ed25519_fq_from_noir_field(&x)) {
             break (p, r);
         }
@@ -30,9 +31,9 @@ pub fn generate_vaporize_address<R: rand::RngCore>(
     (addr, r)
 }
 
-fn hash_3(a: NoirField, b: NoirField, c: NoirField) -> NoirField {
-    let mut poseidon = Poseidon::<NoirField>::new_circom(3).unwrap();
-    poseidon.hash(&[a, b, c]).unwrap()
+fn hash_4(a: NoirField, b: NoirField, c: NoirField, d: NoirField) -> NoirField {
+    let mut poseidon = Poseidon::<NoirField>::new_circom(4).unwrap();
+    poseidon.hash(&[a, b, c, d]).unwrap()
 }
 
 fn ed25519_fq_from_noir_field(x: &NoirField) -> Fq {
@@ -79,7 +80,7 @@ mod tests {
         // fuzz a bunch of recipients and check we get valid addresses
         for i in 0..255 {
             let mut rng = OsRng;
-            let (addr, secret) = generate_vaporize_address(&mut rng, [i; 32]);
+            let (addr, secret) = generate_vaporize_address(&mut rng, [i; 32], 10);
             println!("Generated address: {:?}", addr);
             println!("Secret: {:?}", secret);
 
