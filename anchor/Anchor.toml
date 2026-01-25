@@ -10,8 +10,8 @@ condenser = "FrcRj9b13DKzq2EoFqFXjmqqgamd1nsPjkhRCrT9Za8C"
 transfer_hook = "Cp58wswY9RJbycQSP5meuwAKGBWk44Lsza7npcXmDwRT"
 
 [programs.devnet]
-condenser = "LfXPYkVoeNy5933hcHZChMHREpwaNvnxpT1v6xdxajG"
-transfer_hook = "E8a5MFnAPA92apKrYyTgE9x2e3U165GpRPfdTobauDmn"
+condenser = "Bs5oDuMEnM4VzseKjNndM4wgzZUhrWNJ2DRpiMp9xVFv"
+transfer_hook = "4pY5QvuVwh2Ktd6LAiAGhuhFvVFqx6GCioh6iThmLT8y"
 
 [registry]
 url = "https://api.apr.dev"

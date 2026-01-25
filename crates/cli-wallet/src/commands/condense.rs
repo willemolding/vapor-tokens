@@ -12,7 +12,10 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signer};
 use solana_sdk::transaction::Transaction;
 use solana_sdk_ids::system_program;
-use spl_associated_token_account::get_associated_token_address_with_program_id;
+use spl_associated_token_account::{
+    get_associated_token_address_with_program_id,
+    instruction::create_associated_token_account_idempotent,
+};
 
 use crate::build_merkle_proof::build_merkle_proof;
 use crate::{TRANSFERS, VAP_ADDR, prove::prove};
@@ -121,7 +124,7 @@ fn submit_proof(
     let recipient_ata = get_associated_token_address_with_program_id(
         &recipient.to_bytes().into(),
         &mint.to_bytes().into(),
-        &spl_token_2022::ID,
+        &spl_token_2022::ID.to_bytes().into(),
     );
 
     let accounts = vec![
@@ -141,10 +144,18 @@ fn submit_proof(
         data,
     };
 
+    let create_ata_ix = create_associated_token_account_idempotent(
+        &payer.pubkey().to_bytes().into(),
+        &recipient.to_bytes().into(),
+        &mint.to_bytes().into(),
+        &spl_token_2022::ID.to_bytes().into(),
+    );
+
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
         &[
             ComputeBudgetInstruction::set_compute_unit_limit(1_000_000),
+            create_ata_ix,
             instruction,
         ],
         Some(&payer.pubkey()),

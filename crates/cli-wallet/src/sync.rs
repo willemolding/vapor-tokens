@@ -21,9 +21,6 @@ pub fn sync(db: &redb::Database, rpc_url: &str, mint: &str) -> anyhow::Result<()
     // Anchor on the mint
     let mint = Pubkey::from_str(mint)?;
 
-    // Your transfer-hook program id (string match in logs)
-    let hook_program = "E8a5MFnAPA92apKrYyTgE9x2e3U165GpRPfdTobauDmn";
-
     let mut before: Option<Signature> = None;
 
     tracing::info!("Starting sync from mint {}", mint);
@@ -63,7 +60,9 @@ pub fn sync(db: &redb::Database, rpc_url: &str, mint: &str) -> anyhow::Result<()
             if let Some(meta) = tx.transaction.meta {
                 if let OptionSerializer::Some(logs) = meta.log_messages {
                     // Did our hook program run?
-                    let ran_hook = logs.iter().any(|l| l.contains(hook_program));
+                    let ran_hook = logs
+                        .iter()
+                        .any(|l| l.contains(vaportoken_transfer_hook::ID.to_string().as_str()));
 
                     if ran_hook {
                         for line in logs {
