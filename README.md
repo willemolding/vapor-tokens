@@ -13,6 +13,9 @@ Use cases:
 - As a point-of-sale, create a unique payment address for each customer transaction. They can never learn anything about the finances of the shop.
 - Integrate with existing DeFi protocols and pools that support Token-2022
 
+An example token called Vapor is currently deployed to devnet with mint [4eyCrBi9Wp1TC4WwcvzYN8Ub8ZB15A5px9t7WCrgf4vn](https://solscan.io/token/4eyCrBi9Wp1TC4WwcvzYN8Ub8ZB15A5px9t7WCrgf4vn?cluster=devnet). If you would like some to test with please send your Solana devnet address on telegram to @wollumpls
+
+> [!TIP]
 > For instructions for building and running the code see [USAGE.md](./docs/USAGE.md)
 
 ## How it works
