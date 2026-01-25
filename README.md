@@ -1,7 +1,7 @@
 # <img src="./docs/VapourBold.png" width="50"> Vapor Tokens <img src="./docs/VapourBold.png" width="50">
 
 
-Vapor Tokens are a token-2022 compatible extension for unlinklable private transactions with plausible deniability. Inspired by [zERC20](https://medium.com/@intmax/zerc20-privacy-user-experience-7b7431f5b7b0) and [zkWormholes](https://eips.ethereum.org/EIPS/eip-7503).
+Vapor Tokens are a token-2022 compatible extension for unlinklable private transactions with plausible deniability. Build with Noir and inspired by [zERC20](https://medium.com/@intmax/zerc20-privacy-user-experience-7b7431f5b7b0) and [zkWormholes](https://eips.ethereum.org/EIPS/eip-7503).
 
 Unlike confidential transfers which hide only the amount being transferred, vapor tokens break the link between sender and receiver like Tornado Cash or Private Cash. Unlike those protocols, Vapor Tokens make it impossible for the depositor or an observer to tell the difference between a regular transfer and a private transfer (plausible deniability).
 
