@@ -81,7 +81,7 @@ The other component is the [*condenser program*](./anchor/programs/vaportoken-co
 
 The ZK-proof-of-burn circuit, also called the *condenser*, is written in Noir. The trickiest part of the circuit is verifying that the given vapor address was generated correctly. 
 
-Noir conveniently has support for the ed25519 base field in the bignum library. Using this it was fairly straightforward to implement the point is on the standard ed25519 curve. Checking it is in the subgroup was a little trickier and required implementing point doubling which was done in extended form for efficiency. These two checks plus the curve paramters are implemented in [ed25519.nr](./circuits/condenser/src/ed25519.nr). This will be refactored to its own library after the hackathon as it should be quite useful for other projects working with Solana keys at a low level.
+Noir conveniently has support for the ed25519 base field in the bignum library. Using this it was fairly straightforward to check that the point is on the standard ed25519 curve. Checking it is in the subgroup was a little trickier and required implementing point doubling which was done in extended form for efficiency. These two checks plus the curve paramters are implemented in [ed25519.nr](./circuits/condenser/src/ed25519.nr). This will be refactored to its own library after the hackathon as it should be quite useful for other projects working with Solana keys at a low level.
 
 The other piece is verifying the poseidon merkle proof. This was reimplemented based on an implementation from zk-kit.noir. The existing implementation was not designed for fixed depth trees and we were able to get some efficiency improvements by fixing the depth. This is implemented in [merkle.nr](./circuits/condenser/src/merkle.nr).
 
