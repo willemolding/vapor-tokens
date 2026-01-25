@@ -1,4 +1,4 @@
-// Adapted from https://github.com/Lightprotocol/light-protocol/blob/b2a236409bb7797615d217fbf4fff498c852d25e/sparse-merkle-tree/src/merkle_tree.rs
+// Adapted from https://github.com/Privacy-Cash/privacy-cash/blob/main/anchor/programs/zkcash/src/merkle_tree.rs
 use crate::ErrorCode;
 use anchor_lang::prelude::*;
 use light_hasher::Hasher;
