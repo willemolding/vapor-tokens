@@ -15,6 +15,8 @@ Use cases:
 
 An example token called Vapor is currently deployed to devnet with mint [4eyCrBi9Wp1TC4WwcvzYN8Ub8ZB15A5px9t7WCrgf4vn](https://solscan.io/token/4eyCrBi9Wp1TC4WwcvzYN8Ub8ZB15A5px9t7WCrgf4vn?cluster=devnet). If you would like some to test with please send your Solana devnet address on telegram to @wollumpls
 
+See a video presentation and demo [here](https://www.youtube.com/watch?v=xPpmU1X3N6A)
+
 > [!TIP]
 > For instructions for building and running the code see [USAGE.md](./docs/USAGE.md)
 
