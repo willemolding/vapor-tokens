@@ -1,5 +1,6 @@
 # <img src="./docs/VapourBold.png" width="50"> Vapor Tokens <img src="./docs/VapourBold.png" width="50">
 
+![Solana Privacy Hack 2026](https://img.shields.io/badge/Solana%20Privacy%20Hack%202026-🏆%20Private%20Payments%20Winner-9945FF?style=for-the-badge&labelColor=14F195)
 
 Vapor Tokens are a token-2022 compatible extension for unlinklable private transactions with plausible deniability. Build with Noir and inspired by [zERC20](https://medium.com/@intmax/zerc20-privacy-user-experience-7b7431f5b7b0) and [zkWormholes](https://eips.ethereum.org/EIPS/eip-7503).
 
